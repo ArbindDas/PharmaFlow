@@ -83,7 +83,4 @@ public class Orders {
     @JsonManagedReference
     private List<OrderItmes> orderItemsList = new ArrayList<>();
 
-
-
-
 }
