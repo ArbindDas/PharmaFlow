@@ -7,4 +7,5 @@ import com.JSR.online_pharmacy_management.Entity.Users;
 @Repository
 public interface UsersRepository extends JpaRepository<Users, Long> {
 
+    boolean existsByEmail(String email);
 }
