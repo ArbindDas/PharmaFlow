@@ -117,7 +117,7 @@ public class UsersService {
 
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
     // get user by by username
-    public Optional <?> getUserByFullName ( String username ) {
+    public Optional <Users> getUserByFullName ( String username ) {
         try {
             log.info ("Attempting to retrieve user by username {}", username);
 
