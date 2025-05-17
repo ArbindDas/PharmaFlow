@@ -4,21 +4,18 @@ package com.JSR.online_pharmacy_management.Controllers;
 import com.JSR.online_pharmacy_management.Entity.Users;
 import com.JSR.online_pharmacy_management.Exception.UserNotFoundException;
 import com.JSR.online_pharmacy_management.Services.UsersService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
-import static com.mysql.cj.conf.PropertyKey.logger;
 
 @RestController
 @RequestMapping ("/api/v1/users")
@@ -32,6 +29,9 @@ public class UsersController {
     public UsersController ( UsersService usersService ) {
         this.usersService = usersService;
     }
+
+
+
 
     @GetMapping ("/get-all-users")
     public ResponseEntity <?> getAllUsers ( ) {
@@ -109,6 +109,85 @@ public class UsersController {
 
         }
     }
+
+    @GetMapping("/get-by-email")
+    public ResponseEntity<?>getUserByEmail(@PathVariable String email){
+        try {
+
+            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
+            String authenticatedUser = authentication.getName ();
+
+            Optional<Users> optionalUsers = usersService.getUserByEmail (email);
+
+            if (optionalUsers.isPresent ()){
+                log.info ("Successfully retrieved user with email: {}", email);
+                return new ResponseEntity <> (optionalUsers.get () ,HttpStatus.OK);
+            }else {
+                return new ResponseEntity <> ("users not found with : "+ email , HttpStatus.NOT_FOUND);
+            }
+
+        } catch (RuntimeException e) {
+            log.error ("Error fetching user with ID: {}", email, e);
+            throw new UserNotFoundException ("User not found for ", email + e.getMessage ());
+
+        }
+    }
+
+    @DeleteMapping("/delete-by-id")
+    public ResponseEntity<?>deleteUserBYId(@PathVariable Long id){
+        try {
+
+            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
+            String authenticatedUser = authentication.getName ();
+
+            boolean user = usersService.deleteUserById (id);
+            if (user){
+                log.info ("Successfully user deleted with Id {}", id);
+            }else {
+                log.error ("user not found : {}" , id);
+            }
+            return new ResponseEntity <> (user, HttpStatus.NO_CONTENT);
+
+        } catch (RuntimeException e) {
+            log.error ("Error deleting user with ID: {}", id, e);
+            return new ResponseEntity <> ("User not found with id : " + id , HttpStatus.NOT_FOUND);
+
+        }
+    }
+
+    @DeleteMapping("/delete-by-fullName")
+    public ResponseEntity<?>deleteByFullName(@PathVariable String username){
+        try {
+
+            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
+            String authenticatedUser = authentication.getName ();
+
+           boolean user = usersService.deleteUserByFullName (username);
+           if (user){
+               log.info ("Successfully user deleted with userName {}", username);
+           }else {
+               log.error ("user not found with : {}" , username);
+           }
+            return new ResponseEntity <> (user, HttpStatus.NO_CONTENT);
+        } catch (RuntimeException e) {
+            log.error ("Error deleting user with userName: {}", username, e);
+            return new ResponseEntity <> ("User not found with userName : " + username , HttpStatus.NOT_FOUND);
+        }
+    }
+
+
+    @PutMapping("/updateUser")
+    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = authentication.getName(); // get logged-in user's name
+            return usersService.updateUsers(updatedUser, currentUsername);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 
 
     @GetMapping ("/get")

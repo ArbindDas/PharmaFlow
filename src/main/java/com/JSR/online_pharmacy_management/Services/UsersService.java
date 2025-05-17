@@ -39,7 +39,7 @@ public class UsersService {
 
     // create a user
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
-    public Users saveNewUser ( Users users ) {
+    public boolean saveNewUser ( Users users ) {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getFullName ());
 
@@ -57,9 +57,9 @@ public class UsersService {
             }
 
             // Save the user
-            Users savedUser = usersRepository.save (users);
+            usersRepository.save (users);
             log.info ("Successfully saved or updated user with username: {}", users.getFullName ());
-            return savedUser;
+            return true ;
         }catch (UserAlreadyExistsException e) {
             log.error ("User already exists with email: {}", users.getEmail (), e);
             throw e; // Rethrow the exception
@@ -135,15 +135,15 @@ public class UsersService {
     }
 
 
-    public Users getUserByEmail ( String email ) {
+    public Optional<Users> getUserByEmail ( String email ) {
         try {
             log.info ("Fetching the details by the user email: {}", email);
 
-            return usersRepository.findByEmail (email)
+            return Optional.ofNullable (usersRepository.findByEmail (email)
                     .orElseThrow (( ) -> {
                         log.warn ("User not found with email: {}", email);
                         return new UserNotFoundException ("User not found with email: ", email);
-                    });
+                    }));
 
         }catch (UserNotFoundException e) {
 //            throw e; // Let this bubble up to be handled by your global exception handler if you have one
