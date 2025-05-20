@@ -12,11 +12,10 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     boolean existsByEmail(String email);
 
-    Optional<Users>findByName(String username);
-
+    Optional<Users> findByFullName(String fullName);
 
     Optional<Users>findByEmail(String email);
 
-    Optional<Users>deleteByName(String username);
+    void  deleteByFullName(String username);
 
 }

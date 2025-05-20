@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    @Autowired
-    private AdminService adminService;
+    private final AdminService adminService;
 
+    @Autowired
+    public AdminController(AdminService adminService) {
+        this.adminService = adminService;
+    }
     private static final Logger logger = LoggerFactory.getLogger ( AdminController.class );
 
 }

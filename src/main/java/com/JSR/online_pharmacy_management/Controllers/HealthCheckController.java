@@ -1,15 +1,24 @@
 package com.JSR.online_pharmacy_management.Controllers;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/health")
+@Slf4j
 public class HealthCheckController {
 
 
     @GetMapping("/print")
     public  String showHealth(){
         return  new String ( "jai shree ram " );
+    }
+
+
+    @GetMapping ("/testHealth")
+    public String   testPublic() {
+        return "jai";
     }
 
 

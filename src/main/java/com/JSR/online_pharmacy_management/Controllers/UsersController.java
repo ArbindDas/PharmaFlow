@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Optional;
 
 
-@RestController
-@RequestMapping ("/api/v1/users")
 @Slf4j
+@RestController
+@RequestMapping ("/api/users")
 public class UsersController {
 
 
@@ -43,10 +43,13 @@ public class UsersController {
             log.info ("Authenticated user {} is attempting to fetch all user", authenticatedUser);
 
             List <?> users = usersService.getUsers ();
+            if (!users.isEmpty ()){
+                log.info ("Successfully fetched {} users.", users.size ());
 
-            log.info ("Successfully fetched {} users.", users.size ());
-
-            return new ResponseEntity <> (users, HttpStatus.OK);
+                return new ResponseEntity <> (users, HttpStatus.OK);
+            }else {
+               return new ResponseEntity <> (HttpStatus.NOT_FOUND);
+            }
 
         } catch (Exception e) {
             log.error ("Error fetching users: {}", e.getMessage (), e);
@@ -55,7 +58,7 @@ public class UsersController {
     }
 
 
-    @GetMapping ("/get-by-id")
+    @GetMapping ("/get-by-id/{id}")
     public ResponseEntity <?> getUserById ( @PathVariable Long id ) {
         try {
             Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
@@ -75,14 +78,13 @@ public class UsersController {
             }
         } catch (RuntimeException e) {
             log.error ("Error fetching user with ID: {}", id, e);
-
             throw new UserNotFoundException ("User not found for ", id + e.getMessage ());
         }
 
     }
 
 
-    @GetMapping ("/get-by-fullName")
+    @GetMapping ("/get-by-fullName/{username}")
     public ResponseEntity <?> getUserByfullName ( @PathVariable String username ) {
         try {
 
@@ -110,7 +112,7 @@ public class UsersController {
         }
     }
 
-    @GetMapping("/get-by-email")
+    @GetMapping("/get-by-email/{email}")
     public ResponseEntity<?>getUserByEmail(@PathVariable String email){
         try {
 
@@ -133,7 +135,7 @@ public class UsersController {
         }
     }
 
-    @DeleteMapping("/delete-by-id")
+    @DeleteMapping("/delete-by-id/{id}")
     public ResponseEntity<?>deleteUserBYId(@PathVariable Long id){
         try {
 
@@ -155,7 +157,7 @@ public class UsersController {
         }
     }
 
-    @DeleteMapping("/delete-by-fullName")
+    @DeleteMapping("/delete-by-fullName/{username}")
     public ResponseEntity<?>deleteByFullName(@PathVariable String username){
         try {
 
@@ -188,10 +190,4 @@ public class UsersController {
     }
 
 
-
-
-    @GetMapping ("/get")
-    public String getUser ( ) {
-        return "Abhilasha sah";
-    }
 }

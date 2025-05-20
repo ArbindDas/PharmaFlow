@@ -9,22 +9,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+
+@Slf4j
 @RestController
 @RequestMapping ("/api/public")
-@Slf4j
 public class PublicController {
 
-
-    private final PublicService publicService;
     public final UsersService usersService;
 
-    public PublicController ( PublicService publicService, UsersService usersService ) {
-        this.publicService = publicService;
+    @Autowired
+    public PublicController ( UsersService usersService ) {
         this.usersService = usersService;
     }
 
@@ -36,7 +32,7 @@ public class PublicController {
 
             if (isUserCreated) {
                 log.info ("User created successfully: {}", users);
-                return new ResponseEntity <> (isUserCreated, HttpStatus.CREATED);
+                return new ResponseEntity <> (true , HttpStatus.CREATED);
             }else {
                 log.warn ("User creation failed for: {}", users);
                 return new ResponseEntity <> (HttpStatus.BAD_REQUEST);
@@ -47,6 +43,12 @@ public class PublicController {
             return new ResponseEntity <> ("An error occurred while creating the user.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping ("/test")
+    public ResponseEntity<?> testPublic() {
+        return ResponseEntity.ok("Hello from public");
+    }
+
 
 
     @PostMapping ("/signup")

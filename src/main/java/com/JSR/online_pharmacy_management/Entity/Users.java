@@ -5,6 +5,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+/*
+    user --> parent  it uses mappedBy()  JsonManagedReference
+    order --> child its ref to the user its one to one or one to many many to one JsonBackReference
+ */
 
 import com.JSR.online_pharmacy_management.Enums.OAuthProvider;
 import com.JSR.online_pharmacy_management.Enums.Role;
@@ -20,6 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table (
@@ -38,7 +43,7 @@ public class Users {
 
     @NotBlank (message = "Full name cannot be empty")
     @Size (min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
-    @Pattern (regexp = "^[a-zA-Z ]+$", message = "Full name can only contain alphabets and spaces")
+    @Pattern(regexp = "^[a-zA-Z .]+$", message = "Full name can only contain alphabets, spaces, and dots")
     @Column (name = "full_name", nullable = false)
     private String fullName;
 
@@ -56,17 +61,20 @@ public class Users {
     private String password;
 
 
-    @ElementCollection (fetch = FetchType.EAGER)
-    @Column (name = "role", nullable = false)
-    @NotNull (message = "Role cannot be null")
-    @Enumerated (EnumType.STRING)
-    private Set <Role> roles;
+    @ElementCollection(targetClass = Role.class, fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    @NotNull(message = "Role cannot be null")
+    private Set<Role> roles;
+
 
     @Column (name = "auth_provider", nullable = false)
     @Enumerated (EnumType.STRING)
     private OAuthProvider authProvider;
 
     @Column (name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
     private Instant createdAt;
 
     @PrePersist
@@ -77,18 +85,17 @@ public class Users {
     }
 
     @OneToMany (mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("user-orders")
     private List < Orders > ordersList = new ArrayList <> ( );
+    
 
 
-
-
-    @JsonManagedReference
+    @JsonManagedReference("user-prescriptions")
     @OneToMany (mappedBy = "users", cascade = CascadeType.ALL)
     private List < Prescription > prescriptionList = new ArrayList <> ( );
 
     @OneToMany(mappedBy = "createdByUser")
-    @JsonManagedReference
+    @JsonManagedReference("user-created-medicines")
     private List<Medicines> createdMedicines = new ArrayList<>();
 
 

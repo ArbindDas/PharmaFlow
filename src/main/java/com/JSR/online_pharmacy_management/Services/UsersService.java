@@ -29,13 +29,16 @@ public class UsersService {
     private final UsersRepository usersRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private UsersService usersService;
+    private final AdminService adminService;
 
-    public UsersService ( UsersRepository usersRepository, BCryptPasswordEncoder passwordEncoder ) {
+    @Autowired
+    public UsersService ( UsersRepository usersRepository , BCryptPasswordEncoder passwordEncoder , AdminService adminService ) {
         this.usersRepository = usersRepository;
         this.passwordEncoder = passwordEncoder;
+        this.adminService = adminService;
     }
+
+
 
     // create a user
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
@@ -121,7 +124,7 @@ public class UsersService {
         try {
             log.info ("Attempting to retrieve user by username {}", username);
 
-            Optional <Users> optionalUsers = usersRepository.findByName (username);
+            Optional <Users> optionalUsers = usersRepository.findByFullName (username);
 
             if (optionalUsers.isPresent ()) {
                 log.info ("Successfully  retrieved user with username -> {} ", username);
@@ -179,10 +182,10 @@ public class UsersService {
     public boolean deleteUserByFullName ( String username ) {
         try {
             log.info ("Attempting to delete user bu username -> {}", username);
-            Optional <Users> usersOptional = usersRepository.findByName (username);
+            Optional <Users> usersOptional = usersRepository.findByFullName (username);
             if (usersOptional.isPresent ()) {
 
-                Optional <Users> optionalUsers = usersRepository.deleteByName (username);
+                 usersRepository.deleteByFullName (username);
 
                 log.info ("Successfully user delete by username {} ", username);
                 return true;
@@ -201,10 +204,10 @@ public class UsersService {
     public ResponseEntity <?> updateUsers ( Users updatedUser, String username ) {
         try {
             log.info ("updating the user : {}", username);
-            Optional <Users> usersOptional = usersRepository.findByName (username);
+            Optional <Users> usersOptional = usersRepository.findByFullName (username);
             if (usersOptional.isPresent ()) {
                 Users existingUser = updateFields (usersOptional.get (), updatedUser);
-                usersService.saveNewUser (existingUser);
+                adminService.saveNewUser (existingUser);
                 return new ResponseEntity <> (existingUser, HttpStatus.CREATED);
             } else {
                 return new ResponseEntity <> ("User not found", HttpStatus.NOT_FOUND);

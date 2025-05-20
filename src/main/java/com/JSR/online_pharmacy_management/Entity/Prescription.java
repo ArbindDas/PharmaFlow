@@ -50,12 +50,12 @@ public class Prescription {
 
     @ManyToOne ()
     @JoinColumn (name = "user_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference("user-prescriptions")
     private Users users;
 
 
     @OneToOne(mappedBy = "prescription" , cascade = CascadeType.ALL)
-    @JsonManagedReference // Prescription is the parent
+    @JsonManagedReference("prescription-orders") // Prescription is the parent
     private Orders orders;
 
 }

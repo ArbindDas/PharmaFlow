@@ -67,20 +67,20 @@ public class Orders {
 
     @ManyToOne
     @JoinColumn(name = "user_id"  ,nullable = false)
-    @JsonBackReference
+    @JsonBackReference("user-orders")
     private Users users;
 
 
 
     @OneToOne()
     @JoinColumn(name = "prescription_id" , nullable = false , unique = true)
-    @JsonBackReference // Orders is the child / FK holder
+    @JsonBackReference("prescription-orders") // Orders is the child / FK holder
     private Prescription prescription;
 
 
 
     @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<OrderItmes> orderItemsList = new ArrayList<>();
+    @JsonManagedReference("order-items")
+    private List< OrderItems > orderItemsList = new ArrayList<>();
 
 }

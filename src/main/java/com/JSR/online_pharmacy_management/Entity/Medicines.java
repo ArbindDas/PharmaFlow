@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import com.JSR.online_pharmacy_management.Enums.Status;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -96,19 +97,28 @@ public class Medicines {
 
     @ManyToOne
     @JoinColumn(name = "order_items_id" , nullable = false)
-    @JsonBackReference
-    private OrderItmes orderItmes;
+    @JsonBackReference("orderitem-medicines")
+    private OrderItems orderItems;
 
 
-    @Column(name = "created_by")
+//    @Column(name = "created_by", insertable = false, updatable = false)
+//    private Long createdBy; // Stores the ID of the user who created this medicine
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "created_by", referencedColumnName = "id")
+//    @JsonBackReference("user-created-medicines")
+//    private Users createdByUser; // Reference to the actual User entity
+
+    @Column(name = "created_by", insertable = false, updatable = false)
     private Long createdBy; // Stores the ID of the user who created this medicine
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", referencedColumnName = "id", insertable = false, updatable = false)
-    @JsonBackReference
+    @JoinColumn(name = "created_by", referencedColumnName = "id")
+    @JsonBackReference("user-created-medicines")
     private Users createdByUser; // Reference to the actual User entity
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist
