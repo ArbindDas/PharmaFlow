@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -38,13 +39,12 @@ public class AdminService {
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
     public boolean saveNewUser ( Users users ) {
         try {
-            log.info ("Attempting to save or update user with username: {}", users.getFullName ());
+            log.info ("Attempting to save or update user with username: {}", users.getEmail ());
 
-            // Validate user input (e.g., email check)
-            if (usersRepository.existsByEmail (users.getEmail ())) {
-                throw new UserAlreadyExistsException ("User with email " + users.getEmail () + " already exists.");
+            Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
+                throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
             }
-
             // Encode password before saving
             users.setPassword (passwordEncoder.encode (users.getPassword ()));
 

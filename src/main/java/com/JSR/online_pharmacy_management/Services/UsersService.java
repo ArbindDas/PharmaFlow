@@ -45,11 +45,18 @@ public class UsersService {
     public boolean saveNewUser ( Users users ) {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getFullName ());
+            log.info ("User roles before saving: {}" , users.getRoles ());
+
 
             // Validate user input (e.g., email check)
-            if (usersRepository.existsByEmail (users.getEmail ())) {
-                throw new UserAlreadyExistsException ("User with email " + users.getEmail () + " already exists.");
+//            if (usersRepository.existsByEmail (users.getEmail ())) {
+//                throw new UserAlreadyExistsException ("User with email " + users.getEmail () + " already exists.");
+//            }
+            Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
+                throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
             }
+
 
             // Encode password before saving
             users.setPassword (passwordEncoder.encode (users.getPassword ()));
@@ -75,7 +82,7 @@ public class UsersService {
 
     // get All user
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
-    public List <?> getUsers ( ) {
+    public List <?> getAllUsers ( ) {
         try {
 
             log.info ("Retrieving the list of all users.");
@@ -204,9 +211,12 @@ public class UsersService {
     public ResponseEntity <?> updateUsers ( Users updatedUser, String username ) {
         try {
             log.info ("updating the user : {}", username);
-            Optional <Users> usersOptional = usersRepository.findByFullName (username);
+            Optional <Users> usersOptional = usersRepository.findByEmail (username);
+            log.info("Updating user with email: {}", username);
             if (usersOptional.isPresent ()) {
-                Users existingUser = updateFields (usersOptional.get (), updatedUser);
+                Users existingUser =usersOptional.get ();
+
+                updateFields (existingUser, updatedUser);
                 adminService.saveNewUser (existingUser);
                 return new ResponseEntity <> (existingUser, HttpStatus.CREATED);
             } else {
@@ -219,7 +229,7 @@ public class UsersService {
         }
     }
 
-    public Users updateFields ( Users existingUser, Users updatedUser ) {
+    public void updateFields ( Users existingUser, Users updatedUser ) {
 
         if (updatedUser.getFullName () != null && ! updatedUser.getFullName ().isBlank ()) {
             existingUser.setFullName (updatedUser.getFullName ());
@@ -230,7 +240,10 @@ public class UsersService {
         if (updatedUser.getPassword () != null && ! updatedUser.getPassword ().isBlank ()) {
             existingUser.setPassword (updatedUser.getPassword ());
         }
-        return existingUser;
+        if (updatedUser.getAuthProvider() != null) {
+            existingUser.setAuthProvider(updatedUser.getAuthProvider());
+        }
+
     }
 
 }

@@ -31,38 +31,15 @@ public class UsersController {
     }
 
 
-
-
-    @GetMapping ("/get-all-users")
-    public ResponseEntity <?> getAllUsers ( ) {
-        try {
-
-            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
-            String authenticatedUser = authentication.getName ();
-
-            log.info ("Authenticated user {} is attempting to fetch all user", authenticatedUser);
-
-            List <?> users = usersService.getUsers ();
-            if (!users.isEmpty ()){
-                log.info ("Successfully fetched {} users.", users.size ());
-
-                return new ResponseEntity <> (users, HttpStatus.OK);
-            }else {
-               return new ResponseEntity <> (HttpStatus.NOT_FOUND);
-            }
-
-        } catch (Exception e) {
-            log.error ("Error fetching users: {}", e.getMessage (), e);
-            return new ResponseEntity <> ("Failed to fetch users. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
     @GetMapping ("/get-by-id/{id}")
     public ResponseEntity <?> getUserById ( @PathVariable Long id ) {
         try {
             Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
             String authenticatedUser = authentication.getName ();
+            System.out.println("Authenticated user: " + authentication.getName());
+            System.out.println("Authorities: " + authentication.getAuthorities());
+            log.info ("Authenticated user: "+authentication.getName ());
+            log.info ("Authorities user: "+authentication.getAuthorities ());
 
             // Log the attempt to retrieve the user by their ID.
             log.info ("Authenticated user: {} is attempting to fetch user with ID: {}", authenticatedUser, id);
@@ -183,6 +160,8 @@ public class UsersController {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName(); // get logged-in user's name
+          log.info ("Updating user: " + updatedUser);
+          log.info ("Current logged-in username: " + currentUsername);
             return usersService.updateUsers(updatedUser, currentUsername);
         } catch (RuntimeException e) {
             return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
