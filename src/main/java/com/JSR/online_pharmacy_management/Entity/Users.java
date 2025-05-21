@@ -1,6 +1,7 @@
 package com.JSR.online_pharmacy_management.Entity;
 
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +75,7 @@ public class Users {
     private OAuthProvider authProvider;
 
     @Column (name = "created_at", nullable = false, updatable = false)
-    @CreationTimestamp
+//    @CreationTimestamp
     private Instant createdAt;
 
     @PrePersist

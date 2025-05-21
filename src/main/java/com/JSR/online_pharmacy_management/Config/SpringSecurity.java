@@ -37,13 +37,14 @@ public class SpringSecurity {
                         .requestMatchers ("/api/public/**").permitAll ()
                         .requestMatchers ("/api/login/**").permitAll ()
                         .requestMatchers ("/api/health/**").permitAll ()
+                        .requestMatchers ("/api/test/**").permitAll ()
                         .requestMatchers ("/api/users/**").authenticated ()
                         .requestMatchers ("/api/prescription/**").authenticated ()
                         .requestMatchers ("/api/order-item/**").authenticated ()
                         .requestMatchers ("/api/order/**").authenticated ()
                         .requestMatchers ("/api/medicine/**").authenticated ()
                         .requestMatchers ("/api/admin/**").hasRole ("ADMIN")
-                        .anyRequest ().authenticated ()
+                        .anyRequest ().permitAll ()
                 );
                  httpSecurity.httpBasic (Customizer.withDefaults()); // ✅ Enables Basic Authentication explicitly
 

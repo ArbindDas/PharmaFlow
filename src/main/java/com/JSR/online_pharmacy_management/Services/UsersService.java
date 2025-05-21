@@ -8,6 +8,7 @@ import com.JSR.online_pharmacy_management.Exception.UserNotFoundException;
 import com.JSR.online_pharmacy_management.Repository.UsersRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -42,6 +43,7 @@ public class UsersService {
 
     // create a user
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
+
     public boolean saveNewUser ( Users users ) {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getFullName ());
@@ -105,6 +107,7 @@ public class UsersService {
 
     // get user by id
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
+//    @Cacheable (value = "users" , key = "#id")
     public Optional <Users> getUserById ( Long id ) {
         try {
             log.info ("Attempting to retrieve user with ID: {}", id);
