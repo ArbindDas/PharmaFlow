@@ -75,7 +75,6 @@ public class Users {
     private OAuthProvider authProvider;
 
     @Column (name = "created_at", nullable = false, updatable = false)
-//    @CreationTimestamp
     private Instant createdAt;
 
     @PrePersist

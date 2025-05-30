@@ -13,7 +13,6 @@ target/
 .springBeans
 .sts4-cache
 
-
 ### IntelliJ IDEA ###
 .idea
 *.iws
@@ -32,5 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
-src/main/resources/application.properties
-docker-compose.yml
+
+
+# ✅ Keep .env ignored (as it contains sensitive info)
+.env

@@ -101,13 +101,6 @@ public class Medicines {
     private OrderItems orderItems;
 
 
-//    @Column(name = "created_by", insertable = false, updatable = false)
-//    private Long createdBy; // Stores the ID of the user who created this medicine
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "created_by", referencedColumnName = "id")
-//    @JsonBackReference("user-created-medicines")
-//    private Users createdByUser; // Reference to the actual User entity
 
     @Column(name = "created_by", insertable = false, updatable = false)
     private Long createdBy; // Stores the ID of the user who created this medicine
