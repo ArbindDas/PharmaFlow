@@ -219,14 +219,25 @@ public class UsersController {
             boolean user = usersService.deleteUserByFullName(username);
             if (user) {
                 log.info("Successfully user deleted with userName {}", username);
+                String redisKey = "user:"+username;
+                Boolean cacheDeleted = usersRedisTemplate.delete(redisKey);
+
+                if (cacheDeleted) {
+                    log.info("Successfully deleted user cache with key {} from redis ", redisKey);
+                } else {
+                    log.warn("User cache wiht key {}  not found or could not be deleted  from redis ", redisKey);
+                }
+                return new ResponseEntity<>(user, HttpStatus.NO_CONTENT);
             } else {
                 log.error("user not found with : {}", username);
+                return new ResponseEntity<>("User not found with id :" + username, HttpStatus.NOT_FOUND);
             }
-            return new ResponseEntity<>(user, HttpStatus.NO_CONTENT);
+
         } catch (RuntimeException e) {
             log.error("Error deleting user with userName: {}", username, e);
             return new ResponseEntity<>("User not found with userName : " + username, HttpStatus.NOT_FOUND);
         }
+
     }
 
 
