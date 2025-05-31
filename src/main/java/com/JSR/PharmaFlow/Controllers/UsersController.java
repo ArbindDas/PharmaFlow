@@ -3,6 +3,7 @@ package com.JSR.PharmaFlow.Controllers;
 
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
+import com.JSR.PharmaFlow.Services.RedisService;
 import com.JSR.PharmaFlow.Services.UsersService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,9 @@ public class UsersController {
 
     @Autowired
     private RedisTemplate<String, Users> usersRedisTemplate;
+
+    @Autowired
+    private RedisService redisService;
 
     private final UsersService usersService;
 
@@ -240,14 +244,44 @@ public class UsersController {
     }
 
 
-    @PutMapping ("/updateUser")
-    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
+//    @PutMapping ("/updateUser")
+//    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
+//        try {
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//            String currentUsername = authentication.getName(); // get logged-in user's name
+//            log.info("Updating user: " + updatedUser);
+//            log.info("Current logged-in username: " + currentUsername);
+//
+//            return usersService.updateUsers(updatedUser, currentUsername);
+//        } catch (RuntimeException e) {
+//            return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
+    @PutMapping("/updateUser")
+    public ResponseEntity<?>updateUser(@RequestBody @Valid Users updatedUser){
+
         try {
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String currentUsername = authentication.getName(); // get logged-in user's name
+            String currentUsername = authentication.getName();
+
             log.info("Updating user: " + updatedUser);
             log.info("Current logged-in username: " + currentUsername);
-            return usersService.updateUsers(updatedUser, currentUsername);
+
+            ResponseEntity<?> response = usersService.updateUsers(updatedUser , currentUsername);
+
+            if (response.getStatusCode().is2xxSuccessful()){
+
+                // Cache update logic
+                Users savedUser = (Users) response.getBody();
+                assert savedUser != null;
+                redisService.updateUserCache(savedUser);
+            }
+            return response;
+
+
         } catch (RuntimeException e) {
             return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
         }

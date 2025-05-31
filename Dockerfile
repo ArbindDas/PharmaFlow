@@ -13,7 +13,9 @@ RUN mkdir /debug
 COPY . /debug
 
 
-COPY target/online-pharmacy-management-0.0.1-SNAPSHOT.jar app.jar
+#COPY target/online-pharmacy-management-0.0.1-SNAPSHOT.jar app.jar
+COPY target/PharmaFlow-0.0.1-SNAPSHOT.jar app.jar
+
 
 
 ENTRYPOINT ["java","-jar","/app.jar"]
