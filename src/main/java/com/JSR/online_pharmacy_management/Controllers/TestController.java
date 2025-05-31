@@ -20,4 +20,9 @@ public class TestController {
     public String testCache(@PathVariable Long id) {
         return testService.cacheTest(id);
     }
+
+    @GetMapping("/print")
+    public String getPrint(){
+        return new String("get print");
+    }
 }
