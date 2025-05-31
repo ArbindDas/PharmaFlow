@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.JSR</groupId>
-    <artifactId>online-pharmacy-management</artifactId>
+    <artifactId>PharmaFlow</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>online-pharmacy-management</name>
     <description>Demo project for Spring Boot</description>
