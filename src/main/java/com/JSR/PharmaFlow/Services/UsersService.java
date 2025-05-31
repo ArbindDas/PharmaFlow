@@ -223,21 +223,25 @@ public class UsersService {
         }
     }
 
-    public void updateFields ( Users existingUser, Users updatedUser ) {
-
-        if (updatedUser.getFullName () != null && ! updatedUser.getFullName ().isBlank ()) {
-            existingUser.setFullName (updatedUser.getFullName ());
+    public void updateFields(Users existingUser, Users updatedUser) {
+        if (updatedUser.getFullName() != null && !updatedUser.getFullName().trim().isEmpty()) {
+            log.info("Updating fullName to {}", updatedUser.getFullName());
+            existingUser.setFullName(updatedUser.getFullName().trim());
         }
-        if (updatedUser.getEmail () != null && ! updatedUser.getEmail ().isBlank ()) {
-            existingUser.setEmail (updatedUser.getEmail ());
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().trim().isEmpty()) {
+            log.info("Updating email to {}", updatedUser.getEmail());
+            existingUser.setEmail(updatedUser.getEmail().trim());
         }
-        if (updatedUser.getPassword () != null && ! updatedUser.getPassword ().isBlank ()) {
-            existingUser.setPassword (updatedUser.getPassword ());
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().trim().isEmpty()) {
+            log.info("Updating password");
+            String encodedPassword = passwordEncoder.encode(updatedUser.getPassword().trim());
+            existingUser.setPassword(encodedPassword);
         }
         if (updatedUser.getAuthProvider() != null) {
+            log.info("Updating authProvider to {}", updatedUser.getAuthProvider());
             existingUser.setAuthProvider(updatedUser.getAuthProvider());
         }
-
     }
+
 
 }

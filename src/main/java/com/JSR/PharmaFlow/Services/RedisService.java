@@ -4,12 +4,14 @@ package com.JSR.PharmaFlow.Services;
 import com.JSR.PharmaFlow.Cache.RedisConfig;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
 
 @Service
+@Slf4j
 public class RedisService {
 
 
@@ -21,14 +23,26 @@ public class RedisService {
     }
 
     public void updateUserCache(Users user) {
-        String safeEmailKey = RedisKeyCleanup.sanitizeKey(user.getEmail());
-        String safeFullNameKey = RedisKeyCleanup.sanitizeKey(user.getFullName());
-        String idKey = String.valueOf(user.getId());
+        try {
+            String safeEmailKey = RedisKeyCleanup.sanitizeKey(user.getEmail());
+            String safeFullNameKey = RedisKeyCleanup.sanitizeKey(user.getFullName());
+            String idKey = String.valueOf(user.getId());
 
-        usersRedisTemplate.opsForValue().set("user:" + idKey, user);
-        usersRedisTemplate.opsForValue().set("user:" + safeFullNameKey, user);
-        usersRedisTemplate.opsForValue().set("user:" + safeEmailKey, user);
+            log.debug("🧠 Caching user by ID key: user:{}", idKey);
+            usersRedisTemplate.opsForValue().set("user:" + idKey, user);
+
+            log.debug("🧠 Caching user by full name key: user:{}", safeFullNameKey);
+            usersRedisTemplate.opsForValue().set("user:" + safeFullNameKey, user);
+
+            log.debug("🧠 Caching user by email key: user:{}", safeEmailKey);
+            usersRedisTemplate.opsForValue().set("user:" + safeEmailKey, user);
+
+        } catch (Exception e) {
+            log.error("❌ Error while caching user in Redis: ID={}, Email={}", user.getId(), user.getEmail(), e);
+            throw e; // Rethrow if you want the controller to catch it
+        }
     }
+
 
 
 }

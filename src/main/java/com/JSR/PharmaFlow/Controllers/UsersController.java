@@ -8,6 +8,8 @@ import com.JSR.PharmaFlow.Services.UsersService;
 import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -21,13 +23,17 @@ import java.time.Duration;
 import java.util.Optional;
 
 
+
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
 
 
-@Slf4j
+//@Slf4j
 @RestController
 @RequestMapping ( "/api/users" )
 public class UsersController {
+
+    private static final Logger log = LoggerFactory.getLogger(UsersController.class);
+
 
     @Autowired
     private RedisKeyCleanup redisKeyCleanup;
@@ -229,30 +235,48 @@ public class UsersController {
     }
 
 
-    @PutMapping ( "/update" )
-    public ResponseEntity< ? > updateUser(@RequestBody @Valid Users updatedUser) {
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName();
 
-            log.info("Authenticated user '{}' is attempting to update user: {}", currentUsername, updatedUser);
+            System.out.println("Auth: " + currentUsername);
 
-            ResponseEntity< ? > response = usersService.updateUsers(updatedUser, currentUsername);
+            log.info(" Authenticated user '{}' is attempting to update user: {}", currentUsername, updatedUser);
+
+            // Log essential user info
+            log.debug(" Incoming update for email: {}", updatedUser.getEmail());
+            log.debug(" Incoming update for ID: {}", updatedUser.getId());
+
+            ResponseEntity<?> response = usersService.updateUsers(updatedUser, currentUsername);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 Users savedUser = (Users) response.getBody();
                 if (savedUser != null) {
-                    redisService.updateUserCache(savedUser);
-                    log.info("User cache updated for: {}", savedUser.getId());
+                    log.info(" User updated successfully: ID={}, Email={}", savedUser.getId(), savedUser.getEmail());
+
+                    try {
+                        redisService.updateUserCache(savedUser);
+                        log.info("🧠 Redis cache updated for user ID: {}", savedUser.getId());
+                    } catch (Exception redisEx) {
+                        log.error("❌ Redis cache update failed for user ID: {}", savedUser.getId(), redisEx);
+                    }
+                } else {
+                    log.warn("  User update returned null savedUser");
                 }
+            } else {
+                log.warn("️ User update failed with status: {}", response.getStatusCode());
             }
 
             return response;
 
         } catch (RuntimeException e) {
-            log.error("Failed to update user: {}", updatedUser, e);
+            log.error("❌ Exception while updating user: {}", updatedUser, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
         }
     }
+
 
 }
