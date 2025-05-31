@@ -49,17 +49,10 @@ public class UsersService {
             log.info ("User roles before saving: {}" , users.getRoles ());
 
 
-            // Validate user input (e.g., email check)
-//            if (usersRepository.existsByEmail (users.getEmail ())) {
-//                throw new UserAlreadyExistsException ("User with email " + users.getEmail () + " already exists.");
-//            }
             Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
             if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
                 throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
             }
-
-
-            // Encode password before saving
             users.setPassword (passwordEncoder.encode (users.getPassword ()));
 
             // Set default roles if not provided
@@ -67,7 +60,6 @@ public class UsersService {
                 users.setRoles (Set.of (Role.USER)); // Assuming Role is an enum
             }
 
-            // Save the user
             usersRepository.save (users);
             log.info ("Successfully saved or updated user with username: {}", users.getFullName ());
             return true ;

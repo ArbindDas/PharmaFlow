@@ -5,6 +5,7 @@ import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
 import com.JSR.PharmaFlow.Services.RedisService;
 import com.JSR.PharmaFlow.Services.UsersService;
+import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,17 +17,23 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
+
+
+import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
 
 
 @Slf4j
 @RestController
-@RequestMapping ("/api/users")
+@RequestMapping ( "/api/users" )
 public class UsersController {
 
     @Autowired
-    private RedisTemplate<String, Users> usersRedisTemplate;
+    private RedisKeyCleanup redisKeyCleanup;
+
+    @Autowired
+    private RedisTemplate< String, Users > usersRedisTemplate;
 
     @Autowired
     private RedisService redisService;
@@ -38,254 +45,214 @@ public class UsersController {
         this.usersService = usersService;
     }
 
-    @GetMapping ("/get-by-id/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+
+    @GetMapping ( "/get-by-id/{id}" )
+    public ResponseEntity< ? > getUserById(@PathVariable Long id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedUser = authentication.getName();
-            log.info("Authenticated user: {}", authenticatedUser);
-            log.info("Authorities user: {}", authentication.getAuthorities());
+            log.info("Authenticated user: {}, Authorities: {}", authenticatedUser, authentication.getAuthorities());
 
-            // Redis key for the user
             String redisKey = "user:" + id;
-
-            //  Try fetching from Redis
             Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
 
             if (cachedUser != null) {
                 log.info(" User with ID {} found in Redis cache", id);
-                return new ResponseEntity<>(cachedUser, HttpStatus.OK);
+                return ResponseEntity.ok(cachedUser);
             }
 
-            //  Not found in Redis, fetch from DB
-            Optional<Users> usersOptional = usersService.getUserById(id);
-
+            Optional< Users > usersOptional = usersService.getUserById(id);
             if (usersOptional.isPresent()) {
                 Users user = usersOptional.get();
                 log.info(" User with ID {} fetched from DB", id);
 
-                //  Save to Redis for future use
-                log.info("Saving user with key: {}", redisKey);
                 usersRedisTemplate.opsForValue().set(redisKey, user);
+                log.debug("User with ID {} cached in Redis with key '{}'", id, redisKey);
 
-                Set<String> keys = usersRedisTemplate.keys("*");
-                System.out.println("All Redis keys: " + keys);
-
-
-                return new ResponseEntity<>(user, HttpStatus.OK);
+                return ResponseEntity.ok(user);
             } else {
-                log.warn("❌ User with ID {} not found in DB", id);
-                return new ResponseEntity<>("User with ID " + id + " not found", HttpStatus.NOT_FOUND);
+                log.warn(" User with ID {} not found in DB", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User with ID " + id + " not found");
             }
+
         } catch (RuntimeException e) {
-            log.error(" Error fetching user with ID: {}", id, e);
+            log.error(" Error fetching user with ID {}: {}", id, e.getMessage(), e);
             throw new UserNotFoundException("User not found for ", id + e.getMessage());
         }
     }
 
 
-    @GetMapping ("/get-by-fullName/{username}")
-    public ResponseEntity<?> getUserByfullName(@PathVariable String username) {
+    @GetMapping ( "/get-by-fullName/{username}" )
+    public ResponseEntity< ? > getUserByFullName(@PathVariable String username) {
         try {
-
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedUser = authentication.getName();
-
-            // Replace spaces with underscores (or any safe character)
-            String safeUsername = username.replaceAll("\\s+", "_");
-            String redisKey2 = "user:"+safeUsername;
-
-            Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey2);
-
-            if (cachedUser!=null){
-                log.info("User with Username{} found in redis : ", username);
-                return new ResponseEntity<>(cachedUser , HttpStatus.OK);
-            }
-
             log.info("Authenticated user: {} is attempting to fetch user with username: {}", authenticatedUser, username);
 
-            //  Not found in Redis, fetch from DB
-            Optional<Users> usersOptional = usersService.getUserByFullName(username);
-
-            if (usersOptional.isPresent()) {
-                Users users = usersOptional.get();
-                log.info("Successfully retrieved user with username: {}", username);
-                log.info("user get  : {}", users);
-
-                //  Save to Redis for future use
-                log.info("Saving user with key: {}", redisKey2);
-                usersRedisTemplate.opsForValue().set(redisKey2 , users);
-
-                Set<String>keys = usersRedisTemplate.keys("*");
-                System.out.println("All Redis keys: " + keys);
-
-                return new ResponseEntity<>(users, HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("User with username " + username + "not found ", HttpStatus.NOT_FOUND);
-            }
-
-        } catch (RuntimeException e) {
-            log.error("Error fetching user with ID: {}", username, e);
-            throw new UserNotFoundException("User not found for ", username + e.getMessage());
-
-        }
-    }
-
-    @GetMapping ("/get-by-email/{email}")
-    public ResponseEntity<?> getUserByEmail(@RequestParam  String email) {
-        try {
-
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedUser = authentication.getName();
-            // Sanitize or encode email for Redis key
-
-            String safeEmailKey = email.replaceAll("[^a-zA-Z0-9]", "_");
-            String redisKey = "user:" + safeEmailKey;
-//            String redisKey = "user:"+email;
-
+            String redisKey = "user:" + sanitizeKey(username);
             Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
 
-            if (cachedUser!=null){
-                log.info("User with Username{} found in redis : ", email);
-                return new ResponseEntity<>(cachedUser , HttpStatus.OK);
+
+            if (cachedUser != null) {
+                log.info("User with username '{}' found in Redis cache", username);
+                return ResponseEntity.ok(cachedUser);
             }
 
+            Optional< Users > usersOptional = usersService.getUserByFullName(username);
+            if (usersOptional.isPresent()) {
+                Users user = usersOptional.get();
+                log.info("User with username '{}' retrieved from database", username);
 
-            //  Not found in Redis, fetch from DB
-            Optional<Users> optionalUsers = usersService.getUserByEmail(email);
+                usersRedisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
+                log.debug("User cached in Redis with key '{}'", redisKey);
 
-            if (optionalUsers.isPresent()) {
-                log.info("Successfully retrieved user with email: {}", email);
-
-                Users users = optionalUsers.get();
-                //  Save to Redis for future use
-                log.info("Saving user with key: {}", redisKey);
-                usersRedisTemplate.opsForValue().set(redisKey ,users);
-
-                // Save to Redis for 10 minutes
-//                usersRedisTemplate.opsForValue().set(redisKey, users, Duration.ofMinutes(10));
-
-                Set<String>keys = usersRedisTemplate.keys("*");
-                System.out.println("All Redis keys: " + keys);
-
-                return new ResponseEntity<>(users, HttpStatus.OK);
+                return ResponseEntity.ok(user);
             } else {
-                return new ResponseEntity<>("users not found with : " + email, HttpStatus.NOT_FOUND);
+                log.warn("User with username '{}' not found in database", username);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User with username '" + username + "' not found");
+            }
+        } catch (RuntimeException e) {
+            log.error("Error fetching user with username '{}': {}", username, e.getMessage(), e);
+            throw new UserNotFoundException("User not found for ", username + e.getMessage());
+        }
+    }
+
+
+    @GetMapping ( "/get-by-email" )
+    public ResponseEntity< ? > getUserByEmail(@RequestParam String email) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUser = authentication.getName();
+            log.info("Authenticated user: {} is attempting to fetch user with email: {}", authenticatedUser, email);
+
+
+            String safeEmailKey = sanitizeKey(email);
+            String redisKey = "user:" + safeEmailKey;
+
+
+            Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
+            if (cachedUser != null) {
+                log.info("User with email '{}' found in Redis cache", email);
+                return ResponseEntity.ok(cachedUser);
+            }
+
+            Optional< Users > optionalUser = usersService.getUserByEmail(email);
+            if (optionalUser.isPresent()) {
+                Users user = optionalUser.get();
+                log.info("User with email '{}' retrieved from database", email);
+
+                usersRedisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
+                log.debug("User cached in Redis with key '{}'", redisKey);
+
+                return ResponseEntity.ok(user);
+            } else {
+                log.warn("User with email '{}' not found in database", email);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
             }
 
         } catch (RuntimeException e) {
-            log.error("Error fetching user with ID: {}", email, e);
+            log.error("Error fetching user with email '{}': {}", email, e.getMessage(), e);
             throw new UserNotFoundException("User not found for ", email + e.getMessage());
-
         }
     }
 
-    @DeleteMapping ("/delete-by-id/{id}")
-    public ResponseEntity<?> deleteUserBYId(@PathVariable Long id) {
-        try {
 
+    @DeleteMapping ( "/delete-by-id/{id}" )
+    public ResponseEntity< ? > deleteUserById(@PathVariable Long id) {
+        try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedUser = authentication.getName();
+            log.info("Authenticated user: {} is attempting to delete user with ID: {}", authenticatedUser, id);
 
-            boolean user = usersService.deleteUserById(id);
-            if (user) {
-                log.info("Successfully user deleted with Id {}", id);
-                String redisKey = "user:" + id;
-                Boolean cacheDeleted = usersRedisTemplate.delete(redisKey);
-                if (cacheDeleted != null && cacheDeleted) {
-                    log.info("Successfully deleted user cache with key {} from redis ", redisKey);
-                } else {
-                    log.warn("User cache wiht key {}  not found or could not be deleted  from redis ", redisKey);
-                }
+            Optional< Users > usersOptional = usersService.getUserById(id);
 
-                return new ResponseEntity<>(true, HttpStatus.NO_CONTENT);
-            } else {
-                log.error("user not found : {}", id);
-                return new ResponseEntity<>("User not found with id :" + id, HttpStatus.NOT_FOUND);
+            if (usersOptional.isEmpty()) {
+                log.warn("User with ID {} not found in database", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
             }
 
+            Users users = usersOptional.get();
 
-        } catch (RuntimeException e) {
-            log.error("Error deleting user with ID: {}", id, e);
-            return new ResponseEntity<>("User not found with id : " + id, HttpStatus.NOT_FOUND);
+            boolean isDeleted = usersService.deleteUserById(id);
 
-        }
-    }
+            if (isDeleted) {
+                log.info("User with ID {} successfully deleted from database", id);
+                redisKeyCleanup.deleteFromRedis(users);
 
-    @DeleteMapping ("/delete-by-fullName/{username}")
-    public ResponseEntity<?> deleteByFullName(@PathVariable String username) {
-        try {
 
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedUser = authentication.getName();
-
-            boolean user = usersService.deleteUserByFullName(username);
-            if (user) {
-                log.info("Successfully user deleted with userName {}", username);
-                String redisKey = "user:"+username;
-                Boolean cacheDeleted = usersRedisTemplate.delete(redisKey);
-
-                if (cacheDeleted) {
-                    log.info("Successfully deleted user cache with key {} from redis ", redisKey);
-                } else {
-                    log.warn("User cache wiht key {}  not found or could not be deleted  from redis ", redisKey);
-                }
-                return new ResponseEntity<>(user, HttpStatus.NO_CONTENT);
+                return ResponseEntity.noContent().build();
             } else {
-                log.error("user not found with : {}", username);
-                return new ResponseEntity<>("User not found with id :" + username, HttpStatus.NOT_FOUND);
+                log.warn("User with ID {} not found in database", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
             }
 
         } catch (RuntimeException e) {
-            log.error("Error deleting user with userName: {}", username, e);
-            return new ResponseEntity<>("User not found with userName : " + username, HttpStatus.NOT_FOUND);
+            log.error("Error deleting user with ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user with ID: " + id);
         }
-
     }
 
 
-//    @PutMapping ("/updateUser")
-//    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
-//        try {
-//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//            String currentUsername = authentication.getName(); // get logged-in user's name
-//            log.info("Updating user: " + updatedUser);
-//            log.info("Current logged-in username: " + currentUsername);
-//
-//            return usersService.updateUsers(updatedUser, currentUsername);
-//        } catch (RuntimeException e) {
-//            return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-
-    @PutMapping("/updateUser")
-    public ResponseEntity<?>updateUser(@RequestBody @Valid Users updatedUser){
-
+    @DeleteMapping ( "/delete-by-fullName/{username}" )
+    public ResponseEntity< ? > deleteByFullName(@PathVariable String username) {
         try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUser = authentication.getName();
+            log.info("Authenticated user: {} is attempting to delete user with username: {}", authenticatedUser, username);
 
+            Optional< Users > usersOptional = usersService.getUserByFullName(username);
+
+            if (usersOptional.isEmpty()) {
+                log.warn("User with username {} not found in database", username);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with username: " + username);
+            }
+
+            Users users = usersOptional.get();
+
+            boolean isDeleted = usersService.deleteUserByFullName(username);
+            if (isDeleted) {
+                log.info("User with username '{}' successfully deleted from database", username);
+
+                // Delete all Redis keys related to this user using your helper method
+                redisKeyCleanup.deleteFromRedis(users);
+
+                return ResponseEntity.noContent().build();
+            } else {
+                log.warn("User with username '{}' not found in database", username);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with username: " + username);
+            }
+
+        } catch (RuntimeException e) {
+            log.error("Error deleting user with username '{}': {}", username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user with username: " + username);
+        }
+    }
+
+
+    @PutMapping ( "/update" )
+    public ResponseEntity< ? > updateUser(@RequestBody @Valid Users updatedUser) {
+        try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName();
 
-            log.info("Updating user: " + updatedUser);
-            log.info("Current logged-in username: " + currentUsername);
+            log.info("Authenticated user '{}' is attempting to update user: {}", currentUsername, updatedUser);
 
-            ResponseEntity<?> response = usersService.updateUsers(updatedUser , currentUsername);
+            ResponseEntity< ? > response = usersService.updateUsers(updatedUser, currentUsername);
 
-            if (response.getStatusCode().is2xxSuccessful()){
-
-                // Cache update logic
+            if (response.getStatusCode().is2xxSuccessful()) {
                 Users savedUser = (Users) response.getBody();
-                assert savedUser != null;
-                redisService.updateUserCache(savedUser);
+                if (savedUser != null) {
+                    redisService.updateUserCache(savedUser);
+                    log.info("User cache updated for: {}", savedUser.getId());
+                }
             }
+
             return response;
 
-
         } catch (RuntimeException e) {
-            return new ResponseEntity<>("Failed to update user", HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Failed to update user: {}", updatedUser, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
         }
     }
-
 
 }
