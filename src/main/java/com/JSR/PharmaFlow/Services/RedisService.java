@@ -17,7 +17,7 @@ public class RedisService {
         this.redisTemplate = redisTemplate;
     }
     public void updateUserCache(Users user) {
-        String redisKey = "users:" + user.getEmail(); // or user.getId()
+        String redisKey = "users:" + user.getEmail();
         redisTemplate.opsForValue().set(redisKey, user);
     }
 }
