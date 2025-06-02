@@ -10,5 +10,4 @@ public class OrderItemDto {
 
     private String quantity;
     private BigDecimal unitPrice;
-    // other fields if needed
 }
