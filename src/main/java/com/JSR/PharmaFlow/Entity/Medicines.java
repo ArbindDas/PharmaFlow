@@ -120,8 +120,5 @@ public class Medicines {
             this.createdAt = Instant.now();
         }
     }
-//    The createdBy field : stores just the ID (for simple cases)
-//    The createdByUser field  : provides the full relationship (for when you need user details)
-//    createdAt :  is automatically set when the entity is first persisted
-//    The foreign key constraint :  ensures data integrity
+
 }

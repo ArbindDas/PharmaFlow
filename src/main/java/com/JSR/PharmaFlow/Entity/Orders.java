@@ -65,11 +65,10 @@ public class Orders {
     }
 
 
-    @ManyToOne
-    @JoinColumn(name = "user_id"  ,nullable = false)
-    @JsonBackReference("user-orders")
-    private Users users;
 
+    @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("order-items")
+    private List< OrderItems > orderItemsList = new ArrayList<>();
 
 
     @OneToOne()
@@ -78,9 +77,11 @@ public class Orders {
     private Prescription prescription;
 
 
+    @ManyToOne
+    @JoinColumn(name = "user_id"  ,nullable = false)
+    @JsonBackReference("user-orders")
+    private Users users;
 
-    @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("order-items")
-    private List< OrderItems > orderItemsList = new ArrayList<>();
+
 
 }

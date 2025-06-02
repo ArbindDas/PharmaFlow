@@ -30,6 +30,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
 public class OrderItems {
 
     @Id
@@ -45,13 +46,21 @@ public class OrderItems {
 
 
 
+
+    @OneToMany(mappedBy = "orderItems" , cascade = CascadeType.ALL)
+    @JsonManagedReference("orderitem-medicines")
+    private List<Medicines>medicinesList = new ArrayList <> (  );
+
+
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
     @JsonBackReference("order-items")
     private Orders orders;
 
 
-    @OneToMany(mappedBy = "orderItems" , cascade = CascadeType.ALL)
-    @JsonManagedReference("orderitem-medicines")
-    private List<Medicines>medicinesList = new ArrayList <> (  );
+    public OrderItems(String quantity, BigDecimal unitPrice, Orders order) {
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.orders = order;
+    }
 }

@@ -48,14 +48,18 @@ public class Prescription {
         }
     }
 
+
+    @OneToOne(mappedBy = "prescription" , cascade = CascadeType.ALL)
+    @JsonManagedReference("prescription-orders") // Prescription is the parent
+    private Orders orders;
+
+
+
     @ManyToOne ()
     @JoinColumn (name = "user_id", nullable = false)
     @JsonBackReference("user-prescriptions")
     private Users users;
 
 
-    @OneToOne(mappedBy = "prescription" , cascade = CascadeType.ALL)
-    @JsonManagedReference("prescription-orders") // Prescription is the parent
-    private Orders orders;
-
 }
+
