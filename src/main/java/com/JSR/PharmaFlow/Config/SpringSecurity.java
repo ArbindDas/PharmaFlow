@@ -49,7 +49,7 @@ public class SpringSecurity {
                         .requestMatchers ("/api/admin/**").hasRole ("ADMIN")
                         .anyRequest ().permitAll ()
                 );
-                 httpSecurity.httpBasic (Customizer.withDefaults()); // ✅ Enables Basic Authentication explicitly
+                 httpSecurity.httpBasic (Customizer.withDefaults());
 
         httpSecurity.addFilterBefore ( jwtFilter , UsernamePasswordAuthenticationFilter.class );
 
