@@ -38,3 +38,5 @@ logging:
         data:
           redis: DEBUG
     root: INFO
+jwt:
+  secret-key: ${JWT_SECRET}
