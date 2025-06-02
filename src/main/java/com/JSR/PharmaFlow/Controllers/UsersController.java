@@ -259,9 +259,9 @@ public class UsersController {
 
                     try {
                         redisService.updateUserCache(savedUser);
-                        log.info("🧠 Redis cache updated for user ID: {}", savedUser.getId());
+                        log.info(" Redis cache updated for user ID: {}", savedUser.getId());
                     } catch (Exception redisEx) {
-                        log.error("❌ Redis cache update failed for user ID: {}", savedUser.getId(), redisEx);
+                        log.error(" Redis cache update failed for user ID: {}", savedUser.getId(), redisEx);
                     }
                 } else {
                     log.warn("  User update returned null savedUser");
@@ -273,7 +273,7 @@ public class UsersController {
             return response;
 
         } catch (RuntimeException e) {
-            log.error("❌ Exception while updating user: {}", updatedUser, e);
+            log.error(" Exception while updating user: {}", updatedUser, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
         }
     }
