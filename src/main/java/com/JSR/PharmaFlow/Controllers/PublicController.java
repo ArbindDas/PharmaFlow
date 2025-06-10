@@ -1,10 +1,11 @@
 package com.JSR.PharmaFlow.Controllers;
 
-import com.JSR.PharmaFlow.DTO.LoginDTO;
+import com.JSR.PharmaFlow.DTO.LoginDto;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
 import com.JSR.PharmaFlow.Services.UsersService;
 import com.JSR.PharmaFlow.Utils.JwtUtil;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +17,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+
 
 import java.util.Map;
 
-@Slf4j
 @RestController
+@Slf4j
 @RequestMapping("/api/public")
 public class PublicController {
 
@@ -38,6 +41,18 @@ public class PublicController {
     @Autowired
     public PublicController(UsersService usersService) {
         this.usersService = usersService;
+    }
+
+
+    @PostConstruct
+    public void init() {
+        System.out.println(">>>>> PublicController initialized");
+    }
+
+
+    @GetMapping("/test")
+    public String getTest(){
+        return  "jai shree ram";
     }
 
     @PostMapping("/create-user")
@@ -80,19 +95,19 @@ public class PublicController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<?> loginUser(@RequestBody @Valid LoginDTO loginDTO) {
+    public ResponseEntity<?> loginUser(@RequestBody @Valid LoginDto loginDto) {
         try {
-            log.info("Login attempt for email: {}", loginDTO.getEmail());
+            log.info("Login attempt for email: {}", loginDto.email());
 
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginDTO.getEmail(),
-                            loginDTO.getPassword()
+                            loginDto.email(),
+                            loginDto.password()
                     )
             );
 
-            UserDetails userDetails = customUsersDetailsService.loadUserByUsername(loginDTO.getEmail());
-            String jwt = jwtUtil.generateToken(userDetails.getUsername());
+            UserDetails userDetails = customUsersDetailsService.loadUserByUsername(loginDto.email());
+            String jwt = jwtUtil.generateToken(userDetails.getUsername().trim());
 
             return ResponseEntity.ok(Map.of(
                     "token", jwt,
@@ -100,7 +115,7 @@ public class PublicController {
             ));
 
         } catch (BadCredentialsException e) {
-            log.error("Authentication failed for email: {}", loginDTO.getEmail());
+            log.error("Authentication failed for email: {}", loginDto.email());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid credentials"));
         } catch (Exception e) {

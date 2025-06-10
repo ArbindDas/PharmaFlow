@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,9 @@ public class UsersController {
     private RedisKeyCleanup redisKeyCleanup;
 
     @Autowired
-    private RedisTemplate< String, Users > usersRedisTemplate;
+    @Qualifier("userRedisTemplate")
+    private RedisTemplate<String, Users> redisTemplate;
+
 
     @Autowired
     private RedisService redisService;
@@ -59,7 +62,7 @@ public class UsersController {
             log.info("Authenticated user: {}, Authorities: {}", authenticatedUser, authentication.getAuthorities());
 
             String redisKey = "user:" + id;
-            Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
+            Users cachedUser = redisTemplate.opsForValue().get(redisKey);
 
             if (cachedUser != null) {
                 log.info(" User with ID {} found in Redis cache", id);
@@ -71,7 +74,7 @@ public class UsersController {
                 Users user = usersOptional.get();
                 log.info(" User with ID {} fetched from DB", id);
 
-                usersRedisTemplate.opsForValue().set(redisKey, user);
+                redisTemplate.opsForValue().set(redisKey, user);
                 log.debug("User with ID {} cached in Redis with key '{}'", id, redisKey);
 
                 return ResponseEntity.ok(user);
@@ -95,7 +98,7 @@ public class UsersController {
             log.info("Authenticated user: {} is attempting to fetch user with username: {}", authenticatedUser, username);
 
             String redisKey = "user:" + sanitizeKey(username);
-            Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
+            Users cachedUser = redisTemplate.opsForValue().get(redisKey);
 
 
             if (cachedUser != null) {
@@ -108,7 +111,7 @@ public class UsersController {
                 Users user = usersOptional.get();
                 log.info("User with username '{}' retrieved from database", username);
 
-                usersRedisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
+                redisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
                 log.debug("User cached in Redis with key '{}'", redisKey);
 
                 return ResponseEntity.ok(user);
@@ -135,7 +138,7 @@ public class UsersController {
             String redisKey = "user:" + safeEmailKey;
 
 
-            Users cachedUser = usersRedisTemplate.opsForValue().get(redisKey);
+            Users cachedUser = redisTemplate.opsForValue().get(redisKey);
             if (cachedUser != null) {
                 log.info("User with email '{}' found in Redis cache", email);
                 return ResponseEntity.ok(cachedUser);
@@ -146,7 +149,7 @@ public class UsersController {
                 Users user = optionalUser.get();
                 log.info("User with email '{}' retrieved from database", email);
 
-                usersRedisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
+                redisTemplate.opsForValue().set(redisKey, user, Duration.ofMinutes(5));
                 log.debug("User cached in Redis with key '{}'", redisKey);
 
                 return ResponseEntity.ok(user);

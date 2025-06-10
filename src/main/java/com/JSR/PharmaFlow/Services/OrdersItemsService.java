@@ -74,7 +74,7 @@ public class OrdersItemsService {
 
     public List<OrderItems> getItemsByOrderId(Long orderId) {
         logger.info("Fetching all items for order ID: {}", orderId);
-        return ordersItemsRepository.findByOrdersId(orderId);
+        return ordersItemsRepository.findByOrders_Id(orderId);
     }
 
 

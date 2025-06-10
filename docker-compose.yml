@@ -5,6 +5,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: pharmacy_db
+      SPRING_SECURITY_CORS_ALLOWED_ORIGINS: "http://localhost:5173"
 
 
 

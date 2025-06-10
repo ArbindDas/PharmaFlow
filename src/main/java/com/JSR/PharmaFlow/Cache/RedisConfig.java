@@ -25,6 +25,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.Map;
 
 @Configuration
 @EnableCaching
@@ -59,7 +60,8 @@ public class RedisConfig {
                 .build ( );
     }
 
-    @Bean
+
+    @Bean(name = "userRedisTemplate")
     public RedisTemplate < String, Users > redisTemplate ( RedisConnectionFactory connectionFactory ) {
 
         RedisTemplate < String, Users > template = new RedisTemplate <> ( );
@@ -81,6 +83,20 @@ public class RedisConfig {
         return template;
     }
 
+
+    @Bean(name = "mapRedisTemplate")
+    public RedisTemplate<String, Map<String, Object>> mapRedisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Map<String, Object>> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Map.class));
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new Jackson2JsonRedisSerializer<>(Map.class));
+
+        template.afterPropertiesSet();
+        return template;
+    }
 
 }
 

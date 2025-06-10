@@ -1,6 +1,6 @@
 package com.JSR.PharmaFlow.Services;
 
-import com.JSR.PharmaFlow.DTO.OrderItemDto;
+import com.JSR.PharmaFlow.DTO.OrderItemDTO;
 import com.JSR.PharmaFlow.Entity.OrderItems;
 import com.JSR.PharmaFlow.Entity.Orders;
 import com.JSR.PharmaFlow.Entity.Prescription;
@@ -152,16 +152,16 @@ public class OrdersService {
     }
 
 
-    public Orders createOrder(List<OrderItemDto> itemDtos) {
+    public Orders createOrder(List< OrderItemDTO > itemDtos) {
         Orders order = new Orders();
         order.setStatus(Status.PLACED);
         order.setTotalPrice(calculateTotal(itemDtos));
 
         // Add order items
-        for ( OrderItemDto itemDto : itemDtos) {
+        for ( OrderItemDTO itemDto : itemDtos) {
             OrderItems item = new OrderItems(
-                    itemDto.getQuantity(),
-                    itemDto.getUnitPrice(),
+                    itemDto.quantity(),
+                    itemDto.unitPrice(),
                     order
             );
             order.setOrderItemsList(List.of(item));
@@ -170,9 +170,9 @@ public class OrdersService {
         return ordersRepository.save(order);
     }
 
-    private BigDecimal calculateTotal(List<OrderItemDto> items) {
+    private BigDecimal calculateTotal(List< OrderItemDTO > items) {
         return items.stream()
-                .map(i -> i.getUnitPrice().multiply(new BigDecimal(i.getQuantity())))
+                .map(i -> i.unitPrice().multiply(new BigDecimal(i.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

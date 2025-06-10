@@ -2,6 +2,7 @@ package com.JSR.PharmaFlow.Utils;
 
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Jwts;
@@ -16,6 +17,9 @@ public class JwtUtil {
 
     @Value("${jwt.secret-key}")
     private String secretKey;
+
+
+    public static final long REFRESH_TOKEN_EXPIRATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 
     public SecretKey getSigningKey() {
@@ -39,6 +43,20 @@ public class JwtUtil {
                 .getPayload();
     }
 
+
+
+
+
+    public String generateRefreshToken(String username) {
+        return Jwts.builder().subject( username ).issuedAt( new Date() ).expiration( new Date( System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION ) )
+                .signWith(getSigningKey()) // just the key, no algorithm here
+                .compact();
+    }
+
+
+
+
+
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
@@ -60,7 +78,11 @@ public class JwtUtil {
                 .compact();
     }
 
+    
     public Boolean validateToken(String token) {
         return !isTokenExpired(token);
     }
-}
+
+    }
+
+

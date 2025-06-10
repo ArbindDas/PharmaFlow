@@ -120,7 +120,6 @@ public class UsersService {
     }
 
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
-    // get user by by username
     public Optional <Users> getUserByFullName ( String username ) {
         try {
             log.info ("Attempting to retrieve user by username {}", username);
@@ -151,7 +150,7 @@ public class UsersService {
 
         }catch (UserNotFoundException e) {
 //            throw e; // Let this bubble up to be handled by your global exception handler if you have one
-            throw new UserNotFoundException ("user not found with provied email : " + e.getMessage (), email);
+            throw new UserNotFoundException ("user not found with provide email : " + e.getMessage (), email);
         }catch (Exception e) {
             log.error ("Error retrieving user details by email: {}", email, e);
             throw new RuntimeException ("Unexpected error occurred while retrieving user by email");

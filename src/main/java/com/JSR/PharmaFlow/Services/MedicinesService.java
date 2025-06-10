@@ -1,6 +1,6 @@
 package com.JSR.PharmaFlow.Services;
 
-import com.JSR.PharmaFlow.DTO.MedicineBasicDTO;
+import com.JSR.PharmaFlow.DTO.MedicineBasicDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Entity.OrderItems;
 import com.JSR.PharmaFlow.Entity.Users;
@@ -67,14 +67,14 @@ public class MedicinesService {
         medicinesRepository.save(medicine);
     }
 
-    public Medicines createMedicine(MedicineBasicDTO medicineDto, Long createdByUserId) {
+    public Medicines createMedicine(MedicineBasicDto medicineDto, Long createdByUserId) {
         Users creator = usersRepository.findById(createdByUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
 
         Medicines medicine = new Medicines();
 
-        medicine.setName(medicineDto.getName());
+        medicine.setName(medicineDto.name());
 
 
 

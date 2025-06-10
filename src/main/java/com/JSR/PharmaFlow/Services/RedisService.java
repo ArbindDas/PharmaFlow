@@ -28,17 +28,17 @@ public class RedisService {
             String safeFullNameKey = RedisKeyCleanup.sanitizeKey(user.getFullName());
             String idKey = String.valueOf(user.getId());
 
-            log.debug("🧠 Caching user by ID key: user:{}", idKey);
+            log.debug(" Caching user by ID key: user:{}", idKey);
             usersRedisTemplate.opsForValue().set("user:" + idKey, user);
 
-            log.debug("🧠 Caching user by full name key: user:{}", safeFullNameKey);
+            log.debug(" Caching user by full name key: user:{}", safeFullNameKey);
             usersRedisTemplate.opsForValue().set("user:" + safeFullNameKey, user);
 
-            log.debug("🧠 Caching user by email key: user:{}", safeEmailKey);
+            log.debug(" Caching user by email key: user:{}", safeEmailKey);
             usersRedisTemplate.opsForValue().set("user:" + safeEmailKey, user);
 
         } catch (Exception e) {
-            log.error("❌ Error while caching user in Redis: ID={}, Email={}", user.getId(), user.getEmail(), e);
+            log.error(" Error while caching user in Redis: ID={}, Email={}", user.getId(), user.getEmail(), e);
             throw e; // Rethrow if you want the controller to catch it
         }
     }
