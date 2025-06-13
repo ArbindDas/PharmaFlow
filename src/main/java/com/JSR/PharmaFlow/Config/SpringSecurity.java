@@ -1,26 +1,27 @@
 package com.JSR.PharmaFlow.Config;
-
-
 import com.JSR.PharmaFlow.Filters.JwtFilter;
+import com.JSR.PharmaFlow.Filters.OAuth2StateValidationFilter;
+import com.JSR.PharmaFlow.oauth.CustomOAuth2UserService;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
+import com.JSR.PharmaFlow.oauth.OAuth2FailureHandler;
+import com.JSR.PharmaFlow.oauth.OAuth2SuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,87 +32,111 @@ public class SpringSecurity {
 
     private final JwtFilter jwtFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final JwtAuthEntryPoint authEntryPoint;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     @Autowired
-    private JwtAuthEntryPoint authEntryPoint;
-
-    @Autowired
-    public SpringSecurity( CustomUserDetailsService userDetailsService, JwtFilter jwtFilter ) {
-        this.userDetailsService = userDetailsService;
+    public SpringSecurity( JwtFilter jwtFilter , CustomUserDetailsService userDetailsService , OAuth2SuccessHandler oAuth2LoginSuccessHandler , OAuth2SuccessHandler oAuth2SuccessHandler , CustomOAuth2UserService customOAuth2UserService , JwtAuthEntryPoint authEntryPoint , OAuth2FailureHandler oAuth2FailureHandler ) {
         this.jwtFilter = jwtFilter;
+        this.userDetailsService = userDetailsService;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.customOAuth2UserService = customOAuth2UserService;
+        this.authEntryPoint = authEntryPoint;
+        this.oAuth2FailureHandler = oAuth2FailureHandler;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain( HttpSecurity http ) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf( AbstractHttpConfigurer::disable )
-                .cors( cors -> cors.configurationSource( corsConfigurationSource() ) ) // Enable CORS
-                .exceptionHandling( exception -> exception.authenticationEntryPoint( authEntryPoint ) )
-                .sessionManagement( session -> session.sessionCreationPolicy( SessionCreationPolicy.STATELESS ) )
-                .authorizeHttpRequests( auth -> auth
-                        .requestMatchers( HttpMethod.OPTIONS, "/**" ).permitAll() // Allow preflight
-                        .requestMatchers("/api/auth/signup", "/api/auth/signin").permitAll()
-                        .requestMatchers( "/api/auth/profile" ).authenticated()
-                        .requestMatchers( "/api/public/**" ).permitAll()
-                        .requestMatchers( HttpMethod.POST, "/api/public/**" ).permitAll()
-                        .requestMatchers( "/api/health/**" ).permitAll()
-                        .requestMatchers( "/api/test/**" ).permitAll()
-                        .requestMatchers( "/api/users/**" ).authenticated()
-                        .requestMatchers( "/api/prescription/**" ).authenticated()
-                        .requestMatchers( "/api/order-item/**" ).authenticated()
-                        .requestMatchers( "/api/order/**" ).authenticated()
-                        .requestMatchers( "/api/medicine/**" ).authenticated()
-                        .requestMatchers( "/api/admin/**" ).hasRole( "ADMIN" )
+                .csrf( AbstractHttpConfigurer :: disable )
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authEntryPoint)  // Handle 401 errors
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Recommended for JWT
+                )
+                .authorizeHttpRequests(auth -> auth
+                        // Public endpoints (React, Auth, Health checks)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
+                        .requestMatchers(
+                                "/", "/login**", "/oauth2/**",  // OAuth2 & React routes
+                                "/api/auth/**",
+                                "/api/public/**",
+                                "/api/health/**",
+                                "/api/auth/forgot-password"
 
+                        ).permitAll()
 
-                        .anyRequest().authenticated() )
+                        .requestMatchers(
+                                "/api/users/**",
+                                "/api/prescription/**",
+                                "/api/order/**",
+                                "/api/order-item/**",
+                                "/api/medicines/**"
+                        ).authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri("/oauth2/authorization")  // Google OAuth2 starts here
+                        )
+                        .redirectionEndpoint(redirect -> redirect
+                                .baseUri("/login/oauth2/code/*")  // Google redirects here
+                        )
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)  // Custom OAuth2 user handling
+                        )
+                        .successHandler(oAuth2SuccessHandler)  // JWT token generation after OAuth2 success
+                        .failureHandler(oAuth2FailureHandler)
+                )
 
-                .addFilterBefore( jwtFilter, UsernamePasswordAuthenticationFilter.class )
-
-                .httpBasic( Customizer.withDefaults() );
+                // JWT filter (before UsernamePasswordAuth)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // OAuth2 state validation (security)
+                .addFilterBefore(oauth2StateValidationFilter(), OAuth2AuthorizationRequestRedirectFilter.class);
 
         return http.build();
     }
 
-
     @Bean
     public BCryptPasswordEncoder passwordEncoder( ) {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder ( );
     }
 
     @Bean
     public AuthenticationManager authenticationManager( HttpSecurity httpSecurity ) throws Exception {
-        AuthenticationManagerBuilder authBuilder = httpSecurity.getSharedObject( AuthenticationManagerBuilder.class );
-        authBuilder.userDetailsService( userDetailsService ).passwordEncoder( passwordEncoder() );
-        return authBuilder.build();
+        AuthenticationManagerBuilder authBuilder = httpSecurity.getSharedObject ( AuthenticationManagerBuilder.class );
+        authBuilder.userDetailsService ( userDetailsService ).passwordEncoder ( passwordEncoder ( ) );
+        return authBuilder.build ( );
     }
-
-    // CORS Configuration
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
-//        configuration.setAllowedOrigins( List.of("http://localhost:5173")); // React's URL
-//        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Allow OPTIONS
-//        configuration.setAllowedHeaders(List.of("*"));
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
-
     @Bean
-    CorsConfigurationSource corsConfigurationSource( ) {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins( Arrays.asList(
+        config.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173", // Add your React app's origin
                 "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://your-host-ip:5173"
-        ) );
-        config.setAllowedMethods( List.of( "*" ) );
-        config.setAllowedHeaders( List.of( "*" ) );
-        config.setAllowCredentials( true );
+                "http://127.0.0.1:5173"
+        ));
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setExposedHeaders(Arrays.asList(
+                "Cross-Origin-Opener-Policy",
+                "Cross-Origin-Embedder-Policy"
+        ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration( "/**", config );
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
+
+    @Bean
+    public OAuth2StateValidationFilter oauth2StateValidationFilter( ) {
+        return new OAuth2StateValidationFilter ( );
+    }
+
 }

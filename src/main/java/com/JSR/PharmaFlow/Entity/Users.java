@@ -2,6 +2,7 @@ package com.JSR.PharmaFlow.Entity;
 
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -51,12 +52,7 @@ public class Users {
     @Column (name = "email", nullable = false , unique = true)
     private String email;
 
-    @NotBlank (message = "Password cannot be empty")
-    @Pattern (
-            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,}$",
-            message = "Password must be at least 8 characters long, include at least one uppercase letter, one lowercase letter, one number, and one special character."
-    )
-    @Column (name = "password", nullable = false)
+    @Column(name = "password", nullable = true)  // Now nullable!
     private String password;
 
 
@@ -81,6 +77,12 @@ public class Users {
             this.createdAt = Instant.now ( );  // Set the current time if not already set
         }
     }
+
+    @Column(name = "password_reset_token_hash")
+    private String passwordResetTokenHash;
+
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
 
     @OneToMany (mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("user-orders")

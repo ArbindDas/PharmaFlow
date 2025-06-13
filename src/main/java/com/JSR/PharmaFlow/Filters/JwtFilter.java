@@ -46,10 +46,16 @@ public class JwtFilter extends OncePerRequestFilter {
 //            return;
 //        }
 
-        if (path.equals("/api/auth/signin") || path.equals("/api/auth/signup") || "OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        if (path.equals("/api/auth/signin") ||
+                path.equals("/api/auth/signup") ||
+                path.equals ( ("/oauth2/") ) ||
+                path.equals ( "/login/oauth2/" )||
+                "OPTIONS".equalsIgnoreCase(request.getMethod()))
+        {
             filterChain.doFilter(request, response);
             return;
         }
+
 
 
 
@@ -91,3 +97,13 @@ public class JwtFilter extends OncePerRequestFilter {
 //Authenticate users by setting the Spring Security context with UserDetails and authorities.
 //Skip validation for /api/auth endpoints (e.g., login, refresh) and OPTIONS requests.
 //Work alongside JwtAuthenticationFilter to secure your application by verifying tokens issued during login.
+
+
+//Yes, you should include your OAuth-related path(s) in that conditional check
+//    if you want to allow unauthenticated access to them—especially if this
+//code is inside a custom filter like a OncePerRequestFilter for JWT validation.
+//
+//For example, if your OAuth path is something like /oauth2/authorization/google
+//or /login/oauth2/code/google, and you want users to access it without being blocked by JWT filter logic, add it to the condition:
+
+

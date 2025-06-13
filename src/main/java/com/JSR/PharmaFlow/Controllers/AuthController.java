@@ -1,13 +1,9 @@
 package com.JSR.PharmaFlow.Controllers;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
-
-
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,9 +16,11 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,13 +36,11 @@ import com.JSR.PharmaFlow.Utils.JwtUtil;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-
 import com.JSR.PharmaFlow.Enums.Role;
 import org.springframework.web.bind.annotation.RequestMethod;
 import com.JSR.PharmaFlow.DTO.Response;
-import org.springframework.web.bind.annotation.RestController;
-
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
+import com.JSR.PharmaFlow.DTO.ForgotPasswordRequest;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173",
@@ -144,9 +140,6 @@ public class AuthController {
                         .body(new Response.ApiResponse(false, "Fullname is already taken!"));
             }
 
-
-
-
             Users user = new Users();
             user.setFullName(signUpRequest.getFullname().trim());
             user.setEmail(signUpRequest.getEmail().trim().toLowerCase());
@@ -212,5 +205,86 @@ public class AuthController {
 
         return ResponseEntity.ok(profile);
     }
+
+
+
+//    @PostMapping("/forgot-password")
+//    public ResponseEntity<?> updateTheUser(@RequestBody Map<String, String> request) {
+//        String email = request.get("email");
+//
+//        // Validate email format
+//        if (email == null || email.isEmpty()) {
+//            return ResponseEntity.badRequest().body("Email is required");
+//        }
+//        if (!email.matches("/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/")) {
+//            return ResponseEntity.badRequest().body("Please enter a valid email address");
+//        }
+//
+//        try {
+//            // Check if user exists
+//            Optional<Users> userOptional = usersRepository.findByEmail(email);
+//
+//            if (userOptional.isPresent()) {
+//                Users user = userOptional.get();
+//
+//                // Generate JWT reset token (1 hour expiration)
+//                String resetToken = jwtUtil.generatePasswordResetToken(user.getEmail());
+//
+//                // Store hashed token
+//                user.setPasswordResetTokenHash(jwtUtil.hashToken(resetToken));
+//                user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
+//                usersRepository.save(user);
+//
+//                // In production: Send email
+//                // emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+//
+//                // For development: Log token
+//                System.out.println("Reset token for " + email + ": " + resetToken);
+//            }
+//
+//            // Always return the same success response
+//            String responseBody = "If an account with " + email + " exists, you'll receive a password reset link. " +
+//                    "Please check your inbox and spam folder. The link expires in 1 hour.";
+//
+//            return ResponseEntity.ok().body(responseBody);
+//
+//        } catch (Exception e) {
+//            return ResponseEntity.internalServerError().body("An error occurred while processing your request");
+//        }
+//    }
+
+
+    @PostMapping("/forgot-password")  // Make sure this matches your frontend
+    public ResponseEntity<?> handleForgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            // Validate email format
+            if (request.getEmail() == null || !request.getEmail().matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+                return ResponseEntity.badRequest().body("Please enter a valid email address");
+            }
+
+            // Check if user exists
+            Users user = usersRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Generate and save token
+            String resetToken = jwtUtil.generatePasswordResetToken(user.getEmail());
+            user.setPasswordResetTokenHash(jwtUtil.hashToken(resetToken));
+            user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
+            usersRepository.save(user);
+
+            // Log token for development
+            log.info("Reset token for {}: {}", request.getEmail(), resetToken);
+
+            return ResponseEntity.ok().body(
+                    "If an account with " + request.getEmail() + " exists, you'll receive a reset link"
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok().body("If this email exists, a reset link was sent");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("An error occurred");
+        }
+    }
+
+
 
 }
