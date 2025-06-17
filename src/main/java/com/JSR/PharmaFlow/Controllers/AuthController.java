@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
+import com.JSR.PharmaFlow.Services.RedisService;
+import com.JSR.PharmaFlow.Services.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,12 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.JSR.PharmaFlow.DTO.LoginRequest;
 import com.JSR.PharmaFlow.DTO.SignUpRequest;
 import com.JSR.PharmaFlow.Entity.Users;
@@ -37,14 +34,14 @@ import com.JSR.PharmaFlow.Utils.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import com.JSR.PharmaFlow.Enums.Role;
-import org.springframework.web.bind.annotation.RequestMethod;
 import com.JSR.PharmaFlow.DTO.Response;
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
 import com.JSR.PharmaFlow.DTO.ForgotPasswordRequest;
+import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS},
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT ,  RequestMethod.OPTIONS},
         allowedHeaders = "*",
         allowCredentials = "true")
 @Slf4j
@@ -52,6 +49,15 @@ import com.JSR.PharmaFlow.DTO.ForgotPasswordRequest;
 public class AuthController {
 
 
+    @Autowired
+    private RedisService redisService;
+
+
+    @Autowired
+    private UsersService usersService;
+
+    @Autowired
+    private RedisKeyCleanup redisKeyCleanup;
 
     @Autowired
     @Qualifier("mapRedisTemplate")
@@ -207,53 +213,6 @@ public class AuthController {
     }
 
 
-
-//    @PostMapping("/forgot-password")
-//    public ResponseEntity<?> updateTheUser(@RequestBody Map<String, String> request) {
-//        String email = request.get("email");
-//
-//        // Validate email format
-//        if (email == null || email.isEmpty()) {
-//            return ResponseEntity.badRequest().body("Email is required");
-//        }
-//        if (!email.matches("/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/")) {
-//            return ResponseEntity.badRequest().body("Please enter a valid email address");
-//        }
-//
-//        try {
-//            // Check if user exists
-//            Optional<Users> userOptional = usersRepository.findByEmail(email);
-//
-//            if (userOptional.isPresent()) {
-//                Users user = userOptional.get();
-//
-//                // Generate JWT reset token (1 hour expiration)
-//                String resetToken = jwtUtil.generatePasswordResetToken(user.getEmail());
-//
-//                // Store hashed token
-//                user.setPasswordResetTokenHash(jwtUtil.hashToken(resetToken));
-//                user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
-//                usersRepository.save(user);
-//
-//                // In production: Send email
-//                // emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
-//
-//                // For development: Log token
-//                System.out.println("Reset token for " + email + ": " + resetToken);
-//            }
-//
-//            // Always return the same success response
-//            String responseBody = "If an account with " + email + " exists, you'll receive a password reset link. " +
-//                    "Please check your inbox and spam folder. The link expires in 1 hour.";
-//
-//            return ResponseEntity.ok().body(responseBody);
-//
-//        } catch (Exception e) {
-//            return ResponseEntity.internalServerError().body("An error occurred while processing your request");
-//        }
-//    }
-
-
     @PostMapping("/forgot-password")  // Make sure this matches your frontend
     public ResponseEntity<?> handleForgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
@@ -284,6 +243,121 @@ public class AuthController {
             return ResponseEntity.internalServerError().body("An error occurred");
         }
     }
+
+
+    @GetMapping ("/get-all-users")
+    public ResponseEntity <?> getAllUsers ( ) {
+        try {
+
+            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
+            String authenticatedUser = authentication.getName ();
+
+            log.info ("Authenticated user {} is attempting to fetch all user", authenticatedUser);
+
+            List <?> users = usersService.getAllUsers ();
+            if (!users.isEmpty ()){
+                log.info ("Successfully fetched {} users.", users.size ());
+
+                return new ResponseEntity <> (users, HttpStatus.OK);
+            }else {
+                return new ResponseEntity <> (HttpStatus.NOT_FOUND);
+            }
+
+        } catch (Exception e) {
+            log.error ("Error fetching users: {}", e.getMessage (), e);
+            return new ResponseEntity <> ("Failed to fetch users. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    @DeleteMapping ( "/users/{userId}" )
+    public ResponseEntity< ? > deleteUserById(@PathVariable Long id) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUser = authentication.getName();
+            log.info("Authenticated user: {} is attempting to delete user with ID: {}", authenticatedUser, id);
+
+            Optional< Users > usersOptional = usersService.getUserById(id);
+
+            if (usersOptional.isEmpty()) {
+                log.warn("User with ID {} not found in database", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
+            }
+
+            Users users = usersOptional.get();
+
+            boolean isDeleted = usersService.deleteUserById(id);
+
+            if (isDeleted) {
+                log.info("User with ID {} successfully deleted from database", id);
+                redisKeyCleanup.deleteFromRedis(users);
+
+
+                return ResponseEntity.noContent().build();
+            } else {
+                log.warn("User with ID {} not found in database", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
+            }
+
+        } catch (RuntimeException e) {
+            log.error("Error deleting user with ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user with ID: " + id);
+        }
+
+
+    }
+
+
+
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = authentication.getName();
+
+            System.out.println("Auth: " + currentUsername);
+
+            log.info(" Authenticated user '{}' is attempting to update user: {}", currentUsername, updatedUser);
+
+            // Log essential user info
+            log.debug(" Incoming update for email: {}", updatedUser.getEmail());
+            log.debug(" Incoming update for ID: {}", updatedUser.getId());
+
+            ResponseEntity<?> response = usersService.updateUsers(updatedUser, currentUsername);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                Users savedUser = (Users) response.getBody();
+                if (savedUser != null) {
+                    log.info(" User updated successfully: ID={}, Email={}", savedUser.getId(), savedUser.getEmail());
+
+                    try {
+                        redisService.updateUserCache(savedUser);
+                        log.info(" Redis cache updated for user ID: {}", savedUser.getId());
+                    } catch (Exception redisEx) {
+                        log.error(" Redis cache update failed for user ID: {}", savedUser.getId(), redisEx);
+                    }
+                } else {
+                    log.warn("  User update returned null savedUser");
+                }
+            } else {
+                log.warn("️ User update failed with status: {}", response.getStatusCode());
+            }
+
+//            return response;
+            return ResponseEntity.ok(
+                    Map.of(
+                            "status", "success",
+                            "data", usersService.updateUsers(updatedUser, currentUsername)
+                    )
+            );
+
+        } catch (RuntimeException e) {
+            log.error(" Exception while updating user: {}", updatedUser, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
+        }
+    }
+
 
 
 

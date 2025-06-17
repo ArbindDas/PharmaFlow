@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import com.JSR.PharmaFlow.Entity.Users;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -19,5 +20,7 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     Optional<Users>findByEmail(String email);
 
     void  deleteByFullName(String username);
+
+
 
 }
