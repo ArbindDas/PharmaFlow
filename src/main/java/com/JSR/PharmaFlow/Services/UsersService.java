@@ -1,13 +1,17 @@
 package com.JSR.PharmaFlow.Services;
 
+import com.JSR.PharmaFlow.DTO.UserUpdateDTO;
 import com.JSR.PharmaFlow.Entity.Users;
+import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Enums.Role;
+import com.JSR.PharmaFlow.Events.EmailChangedEvent;
 import com.JSR.PharmaFlow.Exception.UserAlreadyExistsException;
 
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,9 +20,11 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.management.relation.RoleNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -26,23 +32,42 @@ import java.util.Set;
 public class UsersService {
 
 
+    private static final String PASSWORD_PATTERN =
+            "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
+
+    private final ApplicationEventPublisher eventPublisher;
+
     private final UsersRepository usersRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     private final AdminService adminService;
 
+
+
+
     @Autowired
-    public UsersService ( UsersRepository usersRepository , BCryptPasswordEncoder passwordEncoder , AdminService adminService ) {
-        this.usersRepository = usersRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.adminService = adminService;
+    public UsersService( ApplicationEventPublisher eventPublisher , UsersRepository usersRepository ,
+                         BCryptPasswordEncoder passwordEncoder , AdminService adminService ) {
+        this.eventPublisher=eventPublisher;
+        this.usersRepository=usersRepository;
+        this.passwordEncoder=passwordEncoder;
+        this.adminService=adminService;
+
     }
+
+
+
+//    @Autowired
+//    public UsersService ( UsersRepository usersRepository , BCryptPasswordEncoder passwordEncoder , AdminService adminService ) {
+//        this.usersRepository = usersRepository;
+//        this.passwordEncoder = passwordEncoder;
+//        this.adminService = adminService;
+//    }
 
 
 
     // create a user
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
-
     public boolean saveNewUser ( Users users ) {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getFullName ());
@@ -199,7 +224,7 @@ public class UsersService {
     }
 
 
-    // update user by fullName
+
     @Transactional (propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
     public ResponseEntity <?> updateUsers ( Users updatedUser, String username ) {
         try {
@@ -209,9 +234,12 @@ public class UsersService {
             if (usersOptional.isPresent ()) {
                 Users existingUser =usersOptional.get ();
 
+
+                updatedUser.setId(existingUser.getId());
+
                 updateFields (existingUser, updatedUser);
                 adminService.saveNewUser (existingUser);
-                return new ResponseEntity <> (existingUser, HttpStatus.CREATED);
+                return new ResponseEntity <> (existingUser, HttpStatus.OK);
             } else {
                 return new ResponseEntity <> ("User not found", HttpStatus.NOT_FOUND);
             }
@@ -227,20 +255,78 @@ public class UsersService {
             log.info("Updating fullName to {}", updatedUser.getFullName());
             existingUser.setFullName(updatedUser.getFullName().trim());
         }
-        if (updatedUser.getEmail() != null && !updatedUser.getEmail().trim().isEmpty()) {
-            log.info("Updating email to {}", updatedUser.getEmail());
-            existingUser.setEmail(updatedUser.getEmail().trim());
+
+        // Update email only if it's different from current email
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().isEmpty() && !updatedUser.getEmail().isBlank()) {
+            if (!updatedUser.getEmail().equals(existingUser.getEmail())) {
+                log.info("Updating email to {}", updatedUser.getEmail());
+                existingUser.setEmail(updatedUser.getEmail());
+            } else {
+                log.info("Same email provided, skipping update");
+            }
         }
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().trim().isEmpty()) {
-            log.info("Updating password");
-            String encodedPassword = passwordEncoder.encode(updatedUser.getPassword().trim());
-            existingUser.setPassword(encodedPassword);
+
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isBlank()) {
+            existingUser.setPassword(updatedUser.getPassword());
         }
+
         if (updatedUser.getAuthProvider() != null) {
             log.info("Updating authProvider to {}", updatedUser.getAuthProvider());
             existingUser.setAuthProvider(updatedUser.getAuthProvider());
         }
     }
 
+    @Transactional
+    public Users updateUserByDTO(UserUpdateDTO dto, String currentUsername) {
+        Users user = usersRepository.findById(dto.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Verify current user has permission to update
+        if (!user.getEmail().equals(currentUsername)) {
+            throw new RuntimeException("Unauthorized to update this user");
+        }
+
+        // Track email change for cache invalidation
+        String oldEmail = user.getEmail();
+        boolean emailChanged = !oldEmail.equals(dto.getEmail());
+
+        // Update fields
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail()); // Always update, validation already done by DTO
+
+        // Password update with validation
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            if (!dto.getPassword().matches(PASSWORD_PATTERN)) {
+                throw new IllegalArgumentException("Password doesn't meet requirements");
+            }
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        // Role update
+        user.setRoles(validateRoles(dto.getRoles()));
+
+        // Auth provider
+        user.setAuthProvider(dto.getAuthProvider() != null ?
+                dto.getAuthProvider() :
+                OAuthProvider.LOCAL);
+
+        Users savedUser = usersRepository.save(user);
+
+        if (emailChanged) {
+            eventPublisher.publishEvent(
+                    new EmailChangedEvent(oldEmail, user.getEmail())
+            );
+        }
+
+        return savedUser;
+    }
+
+
+    private Set<Role> validateRoles(Set<Role> roles) {
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("At least one role must be specified");
+        }
+        return roles; // No need for DB lookup since it's just an enum
+    }
 
 }

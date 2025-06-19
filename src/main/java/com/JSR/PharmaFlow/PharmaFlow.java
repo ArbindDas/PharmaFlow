@@ -12,32 +12,40 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 //@SpringBootApplication
 //@EnableJpaRepositories(basePackages = "com.JSR.PharmaFlow.Repository")
-//@EntityScan(basePackages = "com.JSR.PharmaFlow.Entity")
-//@ComponentScan (basePackages = "com.JSR.PharmaFlow")
+//@EntityScan(basePackages = "com.JSR.PharmaFlow.Entity" )
+//@ComponentScan(basePackages = {
+//		"com.JSR.PharmaFlow",
+//		"com.JSR.PharmaFlow.Controllers",
+//		"com.JSR.PharmaFlow.Services",
+//		"com.JSR.PharmaFlow.Repository"
+//})
+//public class PharmaFlow {
+//
+//	public static void main(String[] args) {
+//		SpringApplication.run(PharmaFlow.class, args);
+//	}
+//
+//	@Bean
+//	public CommandLineRunner printAllMappings( ApplicationContext ctx) {
+//		return args -> {
+//			RequestMappingHandlerMapping mapping = ctx.getBean(RequestMappingHandlerMapping.class);
+//			mapping.getHandlerMethods().forEach((key, value) -> {
+//				System.out.println(key + " : " + value);
+//			});
+//		};
+//	}
+//
+//
+//}
 
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = "com.JSR.PharmaFlow.Repository")
-@EntityScan(basePackages = "com.JSR.PharmaFlow.Entity")
-@ComponentScan(basePackages = {
-		"com.JSR.PharmaFlow",
-		"com.JSR.PharmaFlow.Controllers",
-		"com.JSR.PharmaFlow.Services"
+@EntityScan(basePackages = {
+		"com.JSR.PharmaFlow.Entity",
+		"com.JSR.PharmaFlow.Events"
 })
 public class PharmaFlow {
-
 	public static void main(String[] args) {
 		SpringApplication.run(PharmaFlow.class, args);
 	}
-
-	@Bean
-	public CommandLineRunner printAllMappings( ApplicationContext ctx) {
-		return args -> {
-			RequestMappingHandlerMapping mapping = ctx.getBean(RequestMappingHandlerMapping.class);
-			mapping.getHandlerMethods().forEach((key, value) -> {
-				System.out.println(key + " : " + value);
-			});
-		};
-	}
-
-
 }

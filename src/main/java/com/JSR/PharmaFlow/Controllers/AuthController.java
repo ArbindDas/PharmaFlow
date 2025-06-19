@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.JSR.PharmaFlow.DTO.*;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Services.RedisService;
 import com.JSR.PharmaFlow.Services.UsersService;
@@ -23,9 +25,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
-import com.JSR.PharmaFlow.DTO.LoginRequest;
-import com.JSR.PharmaFlow.DTO.SignUpRequest;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
@@ -34,9 +36,9 @@ import java.util.concurrent.TimeUnit;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import com.JSR.PharmaFlow.Enums.Role;
-import com.JSR.PharmaFlow.DTO.Response;
+
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
-import com.JSR.PharmaFlow.DTO.ForgotPasswordRequest;
+
 import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 
 @RestController
@@ -88,6 +90,13 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
 
 
+    }
+
+    @GetMapping("/roles")
+    public List<String> getAllRoles() {
+        return Arrays.stream(Role.values())
+                .map(Enum::name)
+                .collect(Collectors.toList());
     }
 
 
@@ -319,52 +328,51 @@ public class AuthController {
     }
 
 
+
     @PutMapping("/update")
-    public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
+    public ResponseEntity<?> updateUser(@RequestBody @Valid UserUpdateDTO updatedUser,
+                                        BindingResult bindingResult) {
         try {
+            // Validation handling
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = bindingResult.getFieldErrors()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                FieldError::getField,
+                                fieldError -> fieldError.getDefaultMessage() != null ?
+                                        fieldError.getDefaultMessage() : "Validation error"
+                        ));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("status", "error", "errors", errors));
+            }
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String currentUsername = authentication.getName();
 
-            System.out.println("Auth: " + currentUsername);
+            Users savedUser = usersService.updateUserByDTO(updatedUser, currentUsername);
 
-            log.info(" Authenticated user '{}' is attempting to update user: {}", currentUsername, updatedUser);
-
-            // Log essential user info
-            log.debug(" Incoming update for email: {}", updatedUser.getEmail());
-            log.debug(" Incoming update for ID: {}", updatedUser.getId());
-
-            ResponseEntity<?> response = usersService.updateUsers(updatedUser, currentUsername);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                Users savedUser = (Users) response.getBody();
-                if (savedUser != null) {
-                    log.info(" User updated successfully: ID={}, Email={}", savedUser.getId(), savedUser.getEmail());
-
-                    try {
-                        redisService.updateUserCache(savedUser);
-                        log.info(" Redis cache updated for user ID: {}", savedUser.getId());
-                    } catch (Exception redisEx) {
-                        log.error(" Redis cache update failed for user ID: {}", savedUser.getId(), redisEx);
-                    }
-                } else {
-                    log.warn("  User update returned null savedUser");
-                }
-            } else {
-                log.warn("️ User update failed with status: {}", response.getStatusCode());
+            // Update Redis cache
+            try {
+                redisService.updateUserCache(savedUser);
+                log.info("Redis cache updated for user ID: {}", savedUser.getId());
+            } catch (Exception e) {
+                log.error("Failed to update Redis cache for user ID: {}", savedUser.getId(), e);
+                // Continue even if Redis fails - database is source of truth
             }
 
-            return ResponseEntity.ok(
-                    Map.of(
-                            "status", "success",
-                            "data", usersService.updateUsers(updatedUser, currentUsername)
-                    )
-            );
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", savedUser
+            ));
 
         } catch (RuntimeException e) {
-            log.error(" Exception while updating user: {}", updatedUser, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
+            log.error("User update failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
+
+
 
 
 

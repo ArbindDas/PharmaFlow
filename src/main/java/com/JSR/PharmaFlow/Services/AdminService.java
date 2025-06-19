@@ -8,11 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Optional;
 import java.util.Set;
@@ -40,10 +42,10 @@ public class AdminService {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getEmail ());
 
-            Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
-            if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
-                throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
-            }
+//            Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
+//            if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
+//                throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
+//            }
             // Encode password before saving
             users.setPassword (passwordEncoder.encode (users.getPassword ()));
 
@@ -64,4 +66,26 @@ public class AdminService {
             throw new RuntimeException ("Unexpected error occurred", e);
         }
     }
+
+//    public boolean updateTheUser( Users newUser ){
+//        try {
+//            log.info ("Attempting to save or update user with username: {}", newUser.getEmail ());
+//
+//
+//            newUser.setPassword ( passwordEncoder.encode ( newUser.getPassword () ) );
+//
+//            if (newUser.getRoles ()==null || newUser.getRoles ().isEmpty ()) {
+//
+//                newUser.setRoles (Set.of ( Role.USER ) );
+//
+//            }
+//            usersRepository.save ( newUser );
+//            log.info ("Successfully saved or updated user with username: {}", newUser.getFullName ());
+//            return true ;
+//        } catch (RuntimeException e) {
+//            // Log the error if an exception occurs
+//            logger.error ( "Error saving or updating user with username: {}" , newUser.getFullName ( ) , e );
+//            throw new RuntimeException ( "Failed to save or update user" , e );
+//        }
+//    }
 }

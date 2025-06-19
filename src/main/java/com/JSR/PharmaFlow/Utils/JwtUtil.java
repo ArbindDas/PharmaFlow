@@ -1,8 +1,11 @@
 package com.JSR.PharmaFlow.Utils;
 
 
+import com.JSR.PharmaFlow.Events.JwtToken;
+import com.JSR.PharmaFlow.Repository.JwtTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Component;
@@ -10,12 +13,18 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
 public class JwtUtil {
+
+    @Autowired
+    private JwtTokenRepository tokenRepository;
+
 
     @Value ("${jwt.secret-key}")
     private String secretKey;
@@ -106,6 +115,33 @@ public class JwtUtil {
     public Boolean validateToken( String token ) {
         return ! isTokenExpired( token );
     }
+
+
+
+    public void storeToken(String token, String username, boolean isRefreshToken) {
+        LocalDateTime expiryDate = extractExpiration(token).toInstant()
+                .atZone( ZoneId.systemDefault())
+                .toLocalDateTime();
+
+        JwtToken jwtToken = new JwtToken(
+                hashToken(token), // Store hashed token for security
+                username,
+                expiryDate,
+                isRefreshToken
+        );
+        tokenRepository.save(jwtToken);
+    }
+
+    public boolean isTokenValidAndStored(String token) {
+        try {
+            String hashedToken = hashToken(token);
+            return tokenRepository.existsById(hashedToken) &&
+                    !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 
 }
 
