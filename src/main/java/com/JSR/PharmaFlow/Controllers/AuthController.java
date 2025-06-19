@@ -30,7 +30,7 @@ import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
 import com.JSR.PharmaFlow.Utils.JwtUtil;
-
+import java.util.concurrent.TimeUnit;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import com.JSR.PharmaFlow.Enums.Role;
@@ -61,7 +61,8 @@ public class AuthController {
 
     @Autowired
     @Qualifier("mapRedisTemplate")
-    private RedisTemplate<String, Map<String, Object>> usersRedisTemplate;
+    private RedisTemplate<String, Object> usersRedisTemplate;
+
 
 
 
@@ -170,47 +171,6 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/profile")
-    public ResponseEntity<?> getUserProfile(Authentication authentication) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", "Unauthorized");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
-
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof UserDetails)) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", "Unauthorized");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-        }
-
-        UserDetails userDetails = (UserDetails) principal;
-        String email = userDetails.getUsername();
-        String redisKey = "profile:" + sanitizeKey(email);
-
-        // 1. Try to get from Redis
-        Map<String, Object> cachedProfile = usersRedisTemplate.opsForValue().get(redisKey);
-        if (cachedProfile != null) {
-            return ResponseEntity.ok(cachedProfile);
-        }
-
-        // 2. If not found in Redis, build profile
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("email", email);
-
-        List<String> roles = userDetails.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-        profile.put("roles", roles);
-
-        // 3. Store in Redis with TTL
-        usersRedisTemplate.opsForValue().set(redisKey, profile, Duration.ofMinutes(5));
-
-        return ResponseEntity.ok(profile);
-    }
 
 
     @PostMapping("/forgot-password")  // Make sure this matches your frontend
@@ -245,27 +205,78 @@ public class AuthController {
     }
 
 
-    @GetMapping ("/get-all-users")
-    public ResponseEntity <?> getAllUsers ( ) {
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile(Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Unauthorized");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof UserDetails)) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Unauthorized");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        UserDetails userDetails = (UserDetails) principal;
+        String email = userDetails.getUsername();
+        String redisKey = "profile:" + sanitizeKey(email);
+
+
+        Object cached = usersRedisTemplate.opsForValue().get(redisKey);
+        if (cached instanceof Map<?, ?> map) {
+            return ResponseEntity.ok(map);
+        }
+
+
+        // 2. If not found in Redis, build profile
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("email", email);
+
+        List<String> roles = userDetails.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        profile.put("roles", roles);
+
+        // 3. Store in Redis with TTL
+        usersRedisTemplate.opsForValue().set(redisKey, profile, Duration.ofMinutes(5));
+
+        return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/get-all-users")
+    public ResponseEntity<?> getAllUsers() {
         try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUser = authentication.getName();
 
-            Authentication authentication = SecurityContextHolder.getContext ().getAuthentication ();
-            String authenticatedUser = authentication.getName ();
+            log.info("Authenticated user {} is attempting to fetch all users", authenticatedUser);
 
-            log.info ("Authenticated user {} is attempting to fetch all user", authenticatedUser);
+            String redisKey = "all_users";
 
-            List <?> users = usersService.getAllUsers ();
-            if (!users.isEmpty ()){
-                log.info ("Successfully fetched {} users.", users.size ());
-
-                return new ResponseEntity <> (users, HttpStatus.OK);
-            }else {
-                return new ResponseEntity <> (HttpStatus.NOT_FOUND);
+            Object cached = usersRedisTemplate.opsForValue().get(redisKey);
+            if (cached instanceof List<?> cachedList) {
+                return ResponseEntity.ok(cachedList);
             }
+            List<?> users = usersService.getAllUsers();
+            if (!users.isEmpty()) {
+                log.info("Fetched {} users from DB", users.size());
 
+                usersRedisTemplate.opsForValue().set(redisKey, users, 2, TimeUnit.MINUTES);
+//                return ResponseEntity.ok(users);
+                return ResponseEntity.ok(Map.of("status", "success", "data", users));
+
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
         } catch (Exception e) {
-            log.error ("Error fetching users: {}", e.getMessage (), e);
-            return new ResponseEntity <> ("Failed to fetch users. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error fetching users: {}", e.getMessage(), e);
+            return new ResponseEntity<>("Failed to fetch users. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -308,8 +319,6 @@ public class AuthController {
     }
 
 
-
-
     @PutMapping("/update")
     public ResponseEntity<?> updateUser(@RequestBody @Valid Users updatedUser) {
         try {
@@ -344,7 +353,6 @@ public class AuthController {
                 log.warn("️ User update failed with status: {}", response.getStatusCode());
             }
 
-//            return response;
             return ResponseEntity.ok(
                     Map.of(
                             "status", "success",
@@ -357,7 +365,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update user");
         }
     }
-
 
 
 

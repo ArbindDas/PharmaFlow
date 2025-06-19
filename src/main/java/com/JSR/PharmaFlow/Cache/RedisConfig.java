@@ -1,11 +1,10 @@
 package com.JSR.PharmaFlow.Cache;
-
 import com.JSR.PharmaFlow.Entity.Users;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.resource.ClientResources;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,14 +22,13 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-
 import java.time.Duration;
 import java.util.Map;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 
 @Configuration
 @EnableCaching
 public class RedisConfig {
-
 
     @Value("${spring.data.redis.host}")
     private String redisHost;
@@ -42,8 +40,6 @@ public class RedisConfig {
     public LettuceConnectionFactory redisConnectionFactory ( ) {
         return new LettuceConnectionFactory ( redisHost , redisPort );
     }
-
-
 
 
     @Bean
@@ -83,22 +79,25 @@ public class RedisConfig {
         return template;
     }
 
-
     @Bean(name = "mapRedisTemplate")
-    public RedisTemplate<String, Map<String, Object>> mapRedisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Map<String, Object>> template = new RedisTemplate<>();
+    public RedisTemplate<String, Object> usersRedisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
+        // Create and configure ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // New style: pass ObjectMapper in constructor
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Map.class));
+        template.setValueSerializer(serializer);
         template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new Jackson2JsonRedisSerializer<>(Map.class));
+        template.setHashValueSerializer(serializer);
 
         template.afterPropertiesSet();
         return template;
     }
-
 }
-
-
-
