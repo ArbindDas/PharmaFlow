@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.JSR.PharmaFlow.Enums.Role;
 
 import static com.JSR.PharmaFlow.Utility.RedisKeyCleanup.sanitizeKey;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 
 @RestController
@@ -328,11 +328,74 @@ public class AuthController {
     }
 
 
+    @PutMapping("/admin/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminUpdateUser(
+            @PathVariable Long id,
+            @RequestBody @Valid UserUpdateDTO updatedUser,
+            BindingResult bindingResult,
+            Authentication authentication) {  // Add Authentication parameter
 
-    @PutMapping("/update")
-    public ResponseEntity<?> updateUser(@RequestBody @Valid UserUpdateDTO updatedUser,
+        try {
+            // Validate ID match
+            if (!id.equals(updatedUser.getId())) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("status", "error", "message", "ID mismatch"));
+            }
+
+            // Validate input
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = bindingResult.getFieldErrors()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                FieldError::getField,
+                                fieldError -> fieldError.getDefaultMessage() != null ?
+                                        fieldError.getDefaultMessage() : "Validation error"
+                        ));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("status", "error", "errors", errors));
+            }
+
+            // Get current admin's username from authentication
+            String adminUsername = authentication.getName();
+
+            // Pass both DTO and admin username
+            Users savedUser = usersService.adminUpdateUserByDTO(updatedUser, adminUsername);
+
+            // Update Redis cache
+            try {
+                redisService.updateUserCache(savedUser);
+                log.info("Admin updated user ID: {}", savedUser.getId());
+            } catch (Exception e) {
+                log.error("Failed to update Redis cache for user ID: {}", savedUser.getId(), e);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", savedUser
+            ));
+
+        } catch (RuntimeException e) {
+            log.error("Admin user update failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+
+
+
+
+    @PutMapping("/users/{id}") // More RESTful path
+    public ResponseEntity<?> updateUser( @PathVariable Long id,
+            @RequestBody @Valid UserUpdateDTO updatedUser,
                                         BindingResult bindingResult) {
         try {
+
+            if (!id.equals(updatedUser.getId())) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("status", "error", "message", "ID mismatch"));
+            }
             // Validation handling
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = bindingResult.getFieldErrors()
@@ -371,8 +434,6 @@ public class AuthController {
                     .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
-
-
 
 
 

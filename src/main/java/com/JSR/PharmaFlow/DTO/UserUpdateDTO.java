@@ -3,6 +3,7 @@ package com.JSR.PharmaFlow.DTO;
 
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Enums.Role;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
@@ -29,6 +30,7 @@ public class UserUpdateDTO {
 
     @Pattern (regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
             message = "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character")
+    @Nullable
     private String password;
 
 

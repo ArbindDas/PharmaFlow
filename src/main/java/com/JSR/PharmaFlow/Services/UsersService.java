@@ -329,4 +329,80 @@ public class UsersService {
         return roles; // No need for DB lookup since it's just an enum
     }
 
+
+
+
+    @Transactional
+    public Users adminUpdateUserByDTO(UserUpdateDTO dto, String adminUsername) {
+        // 1. Verify admin exists and has permissions
+        Users admin = usersRepository.findByEmail(adminUsername)
+                .orElseThrow(() -> new RuntimeException("Admin user not found"));
+
+//        if (!admin.getRoles().contains(Role.ADMIN)) {
+//            throw new SecurityException("Only admins can perform this action");
+//        }
+
+        boolean isAdmin = admin.getRoles().stream()
+                .anyMatch(role -> role == Role.ADMIN || role.name().equals("ROLE_ADMIN"));
+
+        // 2. Validate target user exists
+        Users user = usersRepository.findById(dto.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 3. Log the admin action
+        log.info("Admin {} updating user {} (ID: {})",
+                adminUsername,
+                user.getEmail(),
+                user.getId());
+
+        // 4. Perform the update
+        Users updatedUser = performUserUpdate(dto, user);
+
+        // 5. Additional admin-specific logic if needed
+        if (!user.getRoles().equals(dto.getRoles())) {
+            log.info("Admin changed roles for user {} from {} to {}",
+                    user.getEmail(),
+                    user.getRoles(),
+                    dto.getRoles());
+        }
+
+        return updatedUser;
+    }
+
+    private Users performUserUpdate(UserUpdateDTO dto, Users user) {
+        // Track email change for cache invalidation
+        String oldEmail = user.getEmail();
+        boolean emailChanged = !oldEmail.equals(dto.getEmail());
+
+        // Update fields
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail());
+
+        // Password update with validation
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            if (!dto.getPassword().matches(PASSWORD_PATTERN)) {
+                throw new IllegalArgumentException("Password doesn't meet requirements");
+            }
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        // Role update
+        user.setRoles(validateRoles(dto.getRoles()));
+
+        // Auth provider
+        user.setAuthProvider(dto.getAuthProvider() != null ?
+                dto.getAuthProvider() :
+                OAuthProvider.LOCAL);
+
+        Users savedUser = usersRepository.save(user);
+
+        if (emailChanged) {
+            eventPublisher.publishEvent(
+                    new EmailChangedEvent(oldEmail, user.getEmail())
+            );
+        }
+
+        return savedUser;
+    }
+
 }
