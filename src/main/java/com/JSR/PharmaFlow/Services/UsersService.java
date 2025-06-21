@@ -5,6 +5,7 @@ import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Enums.Role;
 import com.JSR.PharmaFlow.Events.EmailChangedEvent;
+import com.JSR.PharmaFlow.Exception.UnauthorizedAccessException;
 import com.JSR.PharmaFlow.Exception.UserAlreadyExistsException;
 
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
@@ -403,6 +404,46 @@ public class UsersService {
         }
 
         return savedUser;
+    }
+
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
+    public boolean isAdmindeleteUserById(Long id, UserUpdateDTO requestingUser) {
+        try {
+            log.info("Attempting to delete user by id {} by user {}", id, requestingUser.getId());
+
+            // Check if requesting user is admin
+            if (!isAdmin(requestingUser)) {
+                log.warn("User with ID: {} is not authorized to delete users", requestingUser.getId());
+                throw new UnauthorizedAccessException ("Only admin users can delete other users");
+            }
+
+            Optional<Users> optionalUsers = usersRepository.findById(id);
+            if (optionalUsers.isPresent()) {
+                usersRepository.deleteById(id);
+                log.info("Successfully deleted user with ID: {}", id);
+                return true;
+            } else {
+                log.warn("User with ID: {} not found, unable to delete", id);
+                return false;
+            }
+        } catch (UnauthorizedAccessException e) {
+            throw e; // Re-throw authorization exceptions
+        } catch (Exception e) {
+            log.error("Error deleting user with ID: {}", id, e);
+            throw new UserNotFoundException("The user is not found by the id {} -> " + id, e.getMessage ());
+        }
+    }
+
+    private boolean isAdmin(UserUpdateDTO user) {
+        return user.getRoles() != null &&
+                user.getRoles().stream()
+                        .anyMatch(this::isAdminRole);
+    }
+
+    private boolean isAdminRole(Role role) {
+        return role.name().equals("ADMIN") ||
+                role.name().equals("ROLE_ADMIN");
     }
 
 }

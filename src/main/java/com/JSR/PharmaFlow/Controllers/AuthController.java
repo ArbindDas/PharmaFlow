@@ -7,6 +7,8 @@ import java.util.stream.Collectors;
 
 import com.JSR.PharmaFlow.DTO.*;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
+import com.JSR.PharmaFlow.Exception.UnauthorizedAccessException;
+import com.JSR.PharmaFlow.Exception.UserNotFoundException;
 import com.JSR.PharmaFlow.Services.RedisService;
 import com.JSR.PharmaFlow.Services.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -291,7 +293,7 @@ public class AuthController {
 
 
     @DeleteMapping ( "/users/{userId}" )
-    public ResponseEntity< ? > deleteUserById(@PathVariable Long id) {
+    public ResponseEntity< ? > deleteUserByIdUser(@PathVariable Long id) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String authenticatedUser = authentication.getName();
@@ -436,5 +438,68 @@ public class AuthController {
     }
 
 
+
+    @DeleteMapping("/admin/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUserById(@PathVariable("id") Long userId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+            }
+
+            String authenticatedUsername = authentication.getName();
+            log.info("Authenticated user: {} is attempting to delete user with ID: {}", authenticatedUsername, userId);
+
+            Optional<Users> currentUserOptional = usersService.getUserByEmail(authenticatedUsername);
+            if (currentUserOptional.isEmpty()) {
+                log.warn("Authenticated user {} not found in database", authenticatedUsername);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated properly");
+            }
+
+            Users currentUser = currentUserOptional.get();
+            UserUpdateDTO requestingUser = convertToUserUpdateDTO(currentUser);
+
+            Optional<Users> targetUserOptional = usersService.getUserById(userId);
+            if (targetUserOptional.isEmpty()) {
+                log.warn("User with ID {} not found in database", userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + userId);
+            }
+
+            boolean isDeleted = usersService.isAdmindeleteUserById(userId, requestingUser);
+
+            if (isDeleted) {
+                log.info("User with ID {} successfully deleted by admin {}", userId, authenticatedUsername);
+                redisKeyCleanup.deleteFromRedis(targetUserOptional.get());
+                return ResponseEntity.noContent().build();
+            } else {
+                log.warn("Failed to delete user with ID {}", userId);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to delete user with ID: " + userId);
+            }
+
+        } catch (UnauthorizedAccessException e) {
+            log.warn("Unauthorized deletion attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (UserNotFoundException e) {
+            log.warn("User not found: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (RuntimeException e) {
+            log.error("Error deleting user with ID {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting user with ID: " + userId);
+        }
+    }
+
+    // Helper method to convert Users to UserUpdateDTO
+    private UserUpdateDTO convertToUserUpdateDTO(Users user) {
+        UserUpdateDTO dto = new UserUpdateDTO();
+        dto.setId(user.getId());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setRoles(user.getRoles());
+        dto.setAuthProvider ( user.getAuthProvider () );
+        return dto;
+    }
 
 }
