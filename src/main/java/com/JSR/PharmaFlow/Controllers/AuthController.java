@@ -167,6 +167,12 @@ public class AuthController {
 
             Users savedUser = usersRepository.save(user);
 
+
+            // Clear the users cache after new user is added
+            usersRedisTemplate.delete("all_users");
+            log.info("Cleared users cache after new registration");
+
+
             log.info("user saved successfully {}" + savedUser.getEmail() , savedUser.getFullName() , savedUser.getPassword() , savedUser.getRoles());
 
             return ResponseEntity.ok(new Response.ApiResponse(true, "User registered successfully"));
@@ -284,6 +290,7 @@ public class AuthController {
                 log.info("Fetched {} users from DB", users.size());
 
                 usersRedisTemplate.opsForValue().set(redisKey, users, 2, TimeUnit.MINUTES);
+                log.info("Cached {} users with key {}", users.size(), redisKey);
                 return ResponseEntity.ok(Map.of("status", "success", "data", users));
 
             } else {
@@ -371,6 +378,10 @@ public class AuthController {
             // Update Redis cache
             try {
                 redisService.updateUserCache(savedUser);
+
+                // 2. INVALIDATE the all_users cache completely
+                usersRedisTemplate.delete("all_users");
+                log.info("Invalidated all_users cache after user update");
                 log.info("Admin updated user ID: {}", savedUser.getId());
             } catch (Exception e) {
                 log.error("Failed to update Redis cache for user ID: {}", savedUser.getId(), e);
