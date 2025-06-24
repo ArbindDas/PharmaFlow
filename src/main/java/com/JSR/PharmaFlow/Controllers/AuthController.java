@@ -270,16 +270,20 @@ public class AuthController {
 
             String redisKey = "all_users";
 
+
             Object cached = usersRedisTemplate.opsForValue().get(redisKey);
             if (cached instanceof List<?> cachedList) {
+                log.info("Returning {} users from cache", cachedList.size());
                 return ResponseEntity.ok(cachedList);
             }
+
+
+            log.info("Cache miss - querying database");
             List<?> users = usersService.getAllUsers();
             if (!users.isEmpty()) {
                 log.info("Fetched {} users from DB", users.size());
 
                 usersRedisTemplate.opsForValue().set(redisKey, users, 2, TimeUnit.MINUTES);
-//                return ResponseEntity.ok(users);
                 return ResponseEntity.ok(Map.of("status", "success", "data", users));
 
             } else {
@@ -292,42 +296,42 @@ public class AuthController {
     }
 
 
-    @DeleteMapping ( "/users/{userId}" )
-    public ResponseEntity< ? > deleteUserByIdUser(@PathVariable Long id) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedUser = authentication.getName();
-            log.info("Authenticated user: {} is attempting to delete user with ID: {}", authenticatedUser, id);
+        @DeleteMapping ( "/users/{userId}" )
+        public ResponseEntity< ? > deleteUserByIdUser(@PathVariable Long id) {
+            try {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                String authenticatedUser = authentication.getName();
+                log.info("Authenticated user: {} is attempting to delete user with ID: {}", authenticatedUser, id);
 
-            Optional< Users > usersOptional = usersService.getUserById(id);
+                Optional< Users > usersOptional = usersService.getUserById(id);
 
-            if (usersOptional.isEmpty()) {
-                log.warn("User with ID {} not found in database", id);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
+                if (usersOptional.isEmpty()) {
+                    log.warn("User with ID {} not found in database", id);
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
+                }
+
+                Users users = usersOptional.get();
+
+                boolean isDeleted = usersService.deleteUserById(id);
+
+                if (isDeleted) {
+                    log.info("User with ID {} successfully deleted from database", id);
+                    redisKeyCleanup.deleteFromRedis(users);
+
+
+                    return ResponseEntity.noContent().build();
+                } else {
+                    log.warn("User with ID {} not found in database", id);
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
+                }
+
+            } catch (RuntimeException e) {
+                log.error("Error deleting user with ID {}: {}", id, e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user with ID: " + id);
             }
 
-            Users users = usersOptional.get();
 
-            boolean isDeleted = usersService.deleteUserById(id);
-
-            if (isDeleted) {
-                log.info("User with ID {} successfully deleted from database", id);
-                redisKeyCleanup.deleteFromRedis(users);
-
-
-                return ResponseEntity.noContent().build();
-            } else {
-                log.warn("User with ID {} not found in database", id);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + id);
-            }
-
-        } catch (RuntimeException e) {
-            log.error("Error deleting user with ID {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting user with ID: " + id);
         }
-
-
-    }
 
 
     @PutMapping("/admin/users/{id}")

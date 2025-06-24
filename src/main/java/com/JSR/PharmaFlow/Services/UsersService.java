@@ -339,9 +339,7 @@ public class UsersService {
         Users admin = usersRepository.findByEmail(adminUsername)
                 .orElseThrow(() -> new RuntimeException("Admin user not found"));
 
-//        if (!admin.getRoles().contains(Role.ADMIN)) {
-//            throw new SecurityException("Only admins can perform this action");
-//        }
+
 
         boolean isAdmin = admin.getRoles().stream()
                 .anyMatch(role -> role == Role.ADMIN || role.name().equals("ROLE_ADMIN"));
