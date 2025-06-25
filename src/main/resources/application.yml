@@ -65,3 +65,9 @@ logging :
 jwt :
   secret-key : ${JWT_SECRET}
   refresh-token-expiration : ${JWT_REFRESH_TOKEN_EXPIRATION}
+aws:
+  accessKeyId: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION}
+  s3:
+    bucket: ${AWS_S3_BUCKET}

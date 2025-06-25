@@ -66,7 +66,8 @@ public class SpringSecurity {
                                 "/api/auth/**",
                                 "/api/public/**",
                                 "/api/health/**",
-                                "/api/auth/forgot-password"
+                                "/api/auth/forgot-password",
+                                "/api/files/**"
 
                         ).permitAll()
 
@@ -113,21 +114,65 @@ public class SpringSecurity {
         authBuilder.userDetailsService ( userDetailsService ).passwordEncoder ( passwordEncoder ( ) );
         return authBuilder.build ( );
     }
+//    @Bean
+//    CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration config = new CorsConfiguration();
+//        config.setAllowedOrigins(Arrays.asList(
+//                "http://localhost:5174", // Add your React app's origin
+//                "http://localhost:5174",
+//                "http://127.0.0.1:5174"
+//        ));
+//        config.setAllowedMethods(List.of("*"));
+//        config.setAllowedHeaders(List.of("*"));
+//        config.setAllowCredentials(true);
+//        config.setExposedHeaders(Arrays.asList(
+//                "Cross-Origin-Opener-Policy",
+//                "Cross-Origin-Embedder-Policy"
+//        ));
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", config);
+//        return source;
+//    }
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // Allowed origins (React app)
         config.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173", // Add your React app's origin
-                "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://localhost:5174",
+                "http://127.0.0.1:5174"
         ));
-        config.setAllowedMethods(List.of("*"));
-        config.setAllowedHeaders(List.of("*"));
+
+        // Allowed methods (include PUT for direct S3 uploads if needed)
+        config.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"
+        ));
+
+        // Allowed headers (add S3-specific headers)
+        config.setAllowedHeaders(Arrays.asList(
+                "*",  // Or specify explicitly:
+                "Authorization",
+                "Content-Type",
+                "Content-Disposition",
+                "x-amz-acl",
+                "x-amz-meta-*"
+        ));
+
         config.setAllowCredentials(true);
+
+        // Exposed headers (add S3-specific headers)
         config.setExposedHeaders(Arrays.asList(
                 "Cross-Origin-Opener-Policy",
-                "Cross-Origin-Embedder-Policy"
+                "Cross-Origin-Embedder-Policy",
+                "ETag",  // Important for S3
+                "x-amz-version-id",
+                "x-amz-request-id"
         ));
+
+        // Additional S3-specific settings
+        config.setMaxAge(3600L);  // Cache preflight requests for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

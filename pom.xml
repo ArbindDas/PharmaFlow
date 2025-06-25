@@ -150,6 +150,52 @@
         </dependency>
 
 
+<!--        <dependency>-->
+<!--            <groupId>com.cloudinary</groupId>-->
+<!--            <artifactId>cloudinary-http44</artifactId>-->
+<!--            <version>1.37.0</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>com.cloudinary</groupId>-->
+<!--            <artifactId>cloudinary-http5</artifactId>-->
+<!--            <version>2.0.0</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>com.cloudinary</groupId>-->
+<!--            <artifactId>cloudinary-taglib</artifactId>-->
+<!--            <version>2.0.0</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>io.github.cdimascio</groupId>-->
+<!--            <artifactId>dotenv-java</artifactId>-->
+<!--            <version>2.2.4</version>-->
+<!--        </dependency>-->
+
+
+<!--        &lt;!&ndash; https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.amazonaws</groupId>-->
+<!--            <artifactId>aws-java-sdk</artifactId>-->
+<!--            <version>1.12.787</version>-->
+<!--        </dependency>-->
+
+
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.25.69</version>
+        </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>software.amazon.awssdk</groupId>-->
+<!--            <artifactId>auth</artifactId>-->
+<!--            <version>2.25.69</version>-->
+<!--        </dependency>-->
+
     </dependencies>
 
     <build>

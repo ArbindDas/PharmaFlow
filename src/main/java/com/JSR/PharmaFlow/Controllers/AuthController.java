@@ -44,7 +44,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import com.JSR.PharmaFlow.Utility.RedisKeyCleanup;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173",
+@CrossOrigin(origins = "http://localhost:5174",
         methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT ,  RequestMethod.OPTIONS},
         allowedHeaders = "*",
         allowCredentials = "true")
