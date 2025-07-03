@@ -60,9 +60,11 @@ public class SpringSecurity {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (React, Auth, Health checks)
-//                        .requestMatchers(HttpMethod.GET, "/api/medicines/**").permitAll()
-                                .requestMatchers("/api/medicines/test").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/medicines").authenticated()
+                        .requestMatchers(
+                                "/api/medicines/getMedicines",
+                                "/api/medicines/test"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/medicines/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/medicines/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/medicines/").authenticated()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight

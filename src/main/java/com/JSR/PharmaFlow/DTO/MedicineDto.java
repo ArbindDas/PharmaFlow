@@ -2,6 +2,8 @@ package com.JSR.PharmaFlow.DTO;
 
 
 import com.JSR.PharmaFlow.Enums.Status;
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,8 +25,10 @@ public class MedicineDto {
     private BigDecimal price;
     private Integer stock;
     private LocalDate expiryDate;
+    @NotBlank (message = "Image URL cannot be empty")  // or remove this if it's optional
     private String imageUrl;
     private Status status;
+    @Nullable
     private Long createdBy;
     private Instant createdAt;
 

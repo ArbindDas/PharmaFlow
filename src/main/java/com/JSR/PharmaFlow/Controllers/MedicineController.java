@@ -1,8 +1,10 @@
 package com.JSR.PharmaFlow.Controllers;
 
 import com.JSR.PharmaFlow.DTO.MedicineDto;
+import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Enums.Status;
 import com.JSR.PharmaFlow.Services.MedicineService;
+import com.JSR.PharmaFlow.Services.MedicineServiceImpl;
 import com.JSR.PharmaFlow.Services.S3Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +24,7 @@ import java.util.Map;
 @RequestMapping("/api/medicines")
 public class MedicineController {
 
-    private final MedicineService medicineService;
+    private final MedicineService medicineService; // Use interface here
     private final S3Service s3Service;
 
     @Autowired
@@ -30,53 +33,109 @@ public class MedicineController {
         this.s3Service = s3Service;
     }
 
-    @PostMapping
-    public ResponseEntity<?> addMedicine(
-            @RequestParam("name") String name,
-            @RequestParam("description") String description,
-            @RequestParam("price") BigDecimal price,
-            @RequestParam("stock") Integer stock,
-            @RequestParam("expiryDate") LocalDate expiryDate,
-            @RequestParam(value = "image", required = false) MultipartFile imageFile,
-            @RequestParam("status") Status status,
-            @RequestParam("createdBy") Long createdBy) {
 
-        try {
-            String imageUrl = null;
-
-            // Upload image if provided
-            if (imageFile != null && !imageFile.isEmpty()) {
-                imageUrl = s3Service.uploadFile(imageFile);
-            }
-
-            // Create medicine DTO
-            MedicineDto medicineDto = new MedicineDto();
-            medicineDto.setName(name);
-            medicineDto.setDescription(description);
-            medicineDto.setPrice(price);
-            medicineDto.setStock(stock);
-            medicineDto.setExpiryDate(expiryDate);
-            medicineDto.setImageUrl(imageUrl);
-            medicineDto.setStatus(status);
-            medicineDto.setCreatedBy(createdBy);
-            medicineDto.setCreatedAt(Instant.now());
-
-            // Save medicine
-            MedicineDto savedMedicine = medicineService.addMedicine(medicineDto);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedMedicine);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to upload image: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to add medicine: " + e.getMessage());
-        }
+    @PostMapping("/add")
+    public String testAdd() {
+        return "Endpoint is working";
     }
 
+//    @PostMapping("/addMedicines")
+//    @ResponseBody
+//    public ResponseEntity<?> addMedicine(
+//            @RequestParam("name") String name,
+//            @RequestParam("description") String description,
+//            @RequestParam("price") BigDecimal price,
+//            @RequestParam("stock") Integer stock,
+//            @RequestParam("expiryDate") LocalDate expiryDate,
+//            @RequestParam(value = "image", required = false) MultipartFile imageFile,
+////            @RequestParam("status") Status status,
+//            @RequestParam("status") String statusStr,  // Receive as String
+////            @RequestParam(value = "createdBy") Long createdBy) {
+//            @RequestParam(value = "createdBy", required = false) Long createdBy) {
+//
+//
+//
+//        try {
+//            // Convert string to enum
+//            Status status;
+//            try {
+//                status = Status.valueOf(statusStr.toUpperCase());
+//            } catch (IllegalArgumentException e) {
+//                return ResponseEntity.badRequest()
+//                        .body("Invalid status. Valid values are: " + Arrays.toString(Status.values()));
+//            }
+//
+//
+//            String imageUrl = null;
+//
+//            // Upload image if provided
+//            if (imageFile != null && !imageFile.isEmpty()) {
+//                imageUrl = s3Service.uploadFile(imageFile);
+//            }
+//
+//            // Create medicine DTO
+//            MedicineDto medicineDto = new MedicineDto();
+//            medicineDto.setName(name);
+//            medicineDto.setDescription(description);
+//            medicineDto.setPrice(price);
+//            medicineDto.setStock(stock);
+//            medicineDto.setExpiryDate(expiryDate);
+//            medicineDto.setImageUrl(imageUrl);
+//            medicineDto.setStatus(status);
+//            medicineDto.setCreatedBy(createdBy);
+//            medicineDto.setCreatedAt(Instant.now());
+//
+//            // Save medicine
+//            MedicineDto savedMedicine = medicineService.addMedicine(medicineDto);
+//
+//            return ResponseEntity.status(HttpStatus.CREATED).body(savedMedicine);
+//
+//        } catch (IOException e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("Failed to upload image: " + e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("Failed to add medicine: " + e.getMessage());
+//        }
+//    }
 
-    @GetMapping("/")
+
+@PostMapping("/addMedicines")
+public ResponseEntity<?> addMedicine(
+        @RequestParam("name") String name,
+        @RequestParam("description") String description,
+        @RequestParam("price") BigDecimal price,
+        @RequestParam("stock") Integer stock,
+        @RequestParam("expiryDate") LocalDate expiryDate,
+        @RequestParam(value = "image", required = false) MultipartFile imageFile,
+        @RequestParam("status") String statusStr) {  // Removed createdBy parameter
+
+    try {
+        Status status = Status.valueOf(statusStr.toUpperCase());
+        String imageUrl = imageFile != null ? s3Service.uploadFile(imageFile) : null;
+
+        MedicineDto medicineDto = MedicineDto.builder()
+                .name(name)
+                .description(description)
+                .price(price)
+                .stock(stock)
+                .expiryDate(expiryDate)
+                .imageUrl(imageUrl)
+                .status(status)
+                .createdAt(Instant.now())
+                .build();
+
+        MedicineDto savedMedicine = medicineService.addMedicine(medicineDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedMedicine);
+    }
+    catch (Exception e) {
+        return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+    }
+}
+
+
+
+    @GetMapping("/getMedicines")
     public ResponseEntity< List <MedicineDto> > getAllMedicines() {
         try {
             List<MedicineDto> medicines = medicineService.getAllMedicines();
@@ -129,6 +188,5 @@ public class MedicineController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-    // You can add other medicine-related endpoints here
-    // @GetMapping, @PutMapping, @DeleteMapping, etc.
+
 }
