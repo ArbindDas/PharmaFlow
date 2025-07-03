@@ -42,11 +42,6 @@ public class AdminService {
         try {
             log.info ("Attempting to save or update user with username: {}", users.getEmail ());
 
-//            Optional <Users> existingUser = usersRepository.findByEmail(users.getEmail());
-//            if (existingUser.isPresent() && !existingUser.get().getId().equals(users.getId())) {
-//                throw new UserAlreadyExistsException("User with email " + users.getEmail() + " already exists.");
-//            }
-            // Encode password before saving
             users.setPassword (passwordEncoder.encode (users.getPassword ()));
 
             // Set default roles if not provided
@@ -66,26 +61,4 @@ public class AdminService {
             throw new RuntimeException ("Unexpected error occurred", e);
         }
     }
-
-//    public boolean updateTheUser( Users newUser ){
-//        try {
-//            log.info ("Attempting to save or update user with username: {}", newUser.getEmail ());
-//
-//
-//            newUser.setPassword ( passwordEncoder.encode ( newUser.getPassword () ) );
-//
-//            if (newUser.getRoles ()==null || newUser.getRoles ().isEmpty ()) {
-//
-//                newUser.setRoles (Set.of ( Role.USER ) );
-//
-//            }
-//            usersRepository.save ( newUser );
-//            log.info ("Successfully saved or updated user with username: {}", newUser.getFullName ());
-//            return true ;
-//        } catch (RuntimeException e) {
-//            // Log the error if an exception occurs
-//            logger.error ( "Error saving or updating user with username: {}" , newUser.getFullName ( ) , e );
-//            throw new RuntimeException ( "Failed to save or update user" , e );
-//        }
-//    }
 }

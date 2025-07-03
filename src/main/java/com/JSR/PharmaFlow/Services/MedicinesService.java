@@ -1,6 +1,7 @@
 package com.JSR.PharmaFlow.Services;
 
 import com.JSR.PharmaFlow.DTO.MedicineBasicDto;
+import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Entity.OrderItems;
 import com.JSR.PharmaFlow.Entity.Users;
@@ -13,10 +14,16 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MedicinesService {
@@ -31,81 +38,56 @@ public class MedicinesService {
 
 
 
-    @Autowired
-    private  OrdersItemsRepository orderItemsRepository;
+    public MedicineDto createMedicine(MedicineDto medicineDto){
 
+        Authentication authentication =SecurityContextHolder.getContext ().getAuthentication ();
+        String username = authentication.getName ();
 
-    public List< OrderItems > getOrderItemsForMedicine(Long medicineId) {
-        Medicines medicine = medicinesRepository.findById(medicineId)
-                .orElseThrow(() -> new EntityNotFoundException("Medicine not found"));
-        return Collections.singletonList( medicine.getOrderItems() );
+        Medicines medicines = mapToEntity ( medicineDto );
+        medicines.setCreatedAt ( Instant.now () );
+
+        medicines.setCreatedByUser(usersRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException ("User not found")));
+
+        Medicines savedMedicines = medicinesRepository.save ( medicines );
+
+        return mapToDto ( savedMedicines );
+
+    }
+
+    public MedicineDto getMedicinesById(  Long id ){
+        return MedicineDto.builder().build();
     }
 
 
-    public OrderItems createOrderItemForMedicine(Long medicineId, OrderItems orderItem) {
-        Medicines medicine = medicinesRepository.findById(medicineId)
-                .orElseThrow(() -> new EntityNotFoundException("Medicine not found"));
-
-
-        orderItem.setMedicinesList(List.of(medicine) );
-
-
-        return orderItemsRepository.save(orderItem);
+    private MedicineDto mapToDto(Medicines medicines){
+        return MedicineDto.builder ( )
+                .id ( medicines.getId () )
+                .name ( medicines.getName () )
+                .description ( medicines.getDescription () )
+                .price ( medicines.getPrice () )
+                .stock ( medicines.getStock () )
+                .expiryDate ( medicines.getExpiryDate () )
+                .imageUrl ( medicines.getImageUrl () )
+                .status ( medicines.getStatus () )
+                .createdBy ( medicines.getCreatedBy () != null ? medicines.getCreatedByUser ().getId () : null )
+                .build ( );
     }
 
 
-    @Transactional
-    public void updateStockAfterOrder(Long medicineId, Integer quantityOrdered) {
-        Medicines medicine = medicinesRepository.findById(medicineId)
-                .orElseThrow(() -> new EntityNotFoundException("Medicine not found"));
-
-        if (medicine.getStock() < quantityOrdered) {
-            throw new InsufficientStockException("Not enough stock available");
-        }
-
-        medicine.setStock(medicine.getStock() - quantityOrdered);
-        medicinesRepository.save(medicine);
+    private Medicines mapToEntity(MedicineDto medicineDto){
+        return  Medicines.builder ( )
+                .id ( medicineDto.getId ( ) )
+                .name ( medicineDto.getName ( ) )
+                .description ( medicineDto.getDescription ( ) )
+                .price ( medicineDto.getPrice () )
+                .stock ( medicineDto.getStock () )
+                .expiryDate ( medicineDto.getExpiryDate () )
+                .imageUrl ( medicineDto.getImageUrl () )
+                .status ( medicineDto.getStatus () )
+                .build ( );
     }
 
-    public Medicines createMedicine(MedicineBasicDto medicineDto, Long createdByUserId) {
-        Users creator = usersRepository.findById(createdByUserId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
 
-        Medicines medicine = new Medicines();
-
-        medicine.setName(medicineDto.name());
-
-
-
-        medicine.setCreatedByUser(creator);
-
-
-        creator.getCreatedMedicines().add(medicine);
-
-
-        return medicinesRepository.save(medicine);
-    }
-
-    public void updateMedicineCreator(Long medicineId, Long newCreatorId) {
-        Medicines medicine = medicinesRepository.findById(medicineId)
-                .orElseThrow();
-        Users newCreator = usersRepository.findById(newCreatorId)
-                .orElseThrow();
-
-        Users oldCreator = medicine.getCreatedByUser();
-        if (oldCreator != null) {
-            oldCreator.getCreatedMedicines().remove(medicine);
-        }
-
-        medicine.setCreatedByUser(newCreator);
-        newCreator.getCreatedMedicines().add(medicine);
-
-        medicinesRepository.save(medicine);
-    }
-
-    public Medicines getMedicineWithCreator(Long id) {
-        return medicinesRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Medicine not found"));
-    }
 }

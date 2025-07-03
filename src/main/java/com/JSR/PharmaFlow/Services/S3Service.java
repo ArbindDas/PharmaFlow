@@ -9,10 +9,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -25,12 +30,16 @@ public class S3Service {
     private final S3Client s3Client;
 
 
+    private final  S3Presigner s3Presigner;
+
+
     @Value ( "${aws.s3.bucket}" )
     private String bucketName;
 
     @Autowired
-    public S3Service( S3Client s3Client ) {
+    public S3Service( S3Client s3Client , S3Presigner s3Presigner ) {
         this.s3Client=s3Client;
+        this.s3Presigner=s3Presigner;
     }
 
 
@@ -74,6 +83,34 @@ public class S3Service {
                 })
                 .collect(Collectors.toList());
     }
+
+
+
+    public String preSignedUrl(String fileName){
+
+        // Create a GetObjectRequest
+
+        GetObjectRequest getObjectRequest =GetObjectRequest.builder ()
+                .bucket ( bucketName )
+                .key ( fileName )
+                .build ( );
+
+
+        // Create a GetObjectPresignRequest with 2-hour expiration
+
+        GetObjectPresignRequest getObjectPresignRequest = GetObjectPresignRequest.builder ( )
+                .signatureDuration ( Duration.ofHours ( 1 ) )
+                .getObjectRequest ( getObjectRequest )
+                .build ( );
+
+        // Generate the presigned request
+        PresignedGetObjectRequest presignedGetObjectRequest = s3Presigner.presignGetObject ( getObjectPresignRequest );
+
+        return  presignedGetObjectRequest.url ().toString ();
+
+    }
+
+
 
 
     // Inner class to hold file information

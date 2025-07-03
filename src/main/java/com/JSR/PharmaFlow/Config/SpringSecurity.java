@@ -60,6 +60,11 @@ public class SpringSecurity {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (React, Auth, Health checks)
+//                        .requestMatchers(HttpMethod.GET, "/api/medicines/**").permitAll()
+                                .requestMatchers("/api/medicines/test").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/medicines").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/medicines/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/").authenticated()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                         .requestMatchers(
                                 "/", "/login**", "/oauth2/**",  // OAuth2 & React routes
@@ -75,8 +80,7 @@ public class SpringSecurity {
                                 "/api/users/**",
                                 "/api/prescription/**",
                                 "/api/order/**",
-                                "/api/order-item/**",
-                                "/api/medicines/**"
+                                "/api/order-item/**"
                         ).authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
@@ -114,35 +118,14 @@ public class SpringSecurity {
         authBuilder.userDetailsService ( userDetailsService ).passwordEncoder ( passwordEncoder ( ) );
         return authBuilder.build ( );
     }
-//    @Bean
-//    CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowedOrigins(Arrays.asList(
-//                "http://localhost:5174", // Add your React app's origin
-//                "http://localhost:5174",
-//                "http://127.0.0.1:5174"
-//        ));
-//        config.setAllowedMethods(List.of("*"));
-//        config.setAllowedHeaders(List.of("*"));
-//        config.setAllowCredentials(true);
-//        config.setExposedHeaders(Arrays.asList(
-//                "Cross-Origin-Opener-Policy",
-//                "Cross-Origin-Embedder-Policy"
-//        ));
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", config);
-//        return source;
-//    }
-
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         // Allowed origins (React app)
         config.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5174",
-                "http://127.0.0.1:5174"
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
         ));
 
         // Allowed methods (include PUT for direct S3 uploads if needed)

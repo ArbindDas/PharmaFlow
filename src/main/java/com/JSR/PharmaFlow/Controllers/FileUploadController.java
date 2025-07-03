@@ -47,4 +47,17 @@ public class FileUploadController {
         List< S3Service.S3FileInfo > fileInfos = s3Service.listAllFiles ();
         return ResponseEntity.ok ( fileInfos );
     }
+
+
+    @GetMapping("/presigned-url")
+    public ResponseEntity<?> generatePresignedUrl(@RequestParam String fileName){
+            try {
+                String presignedUrl = s3Service.preSignedUrl ( fileName );
+                return ResponseEntity.ok ( Map.of ( "presignedUrl", presignedUrl ) );
+
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to generate pre-signed URL: " + e.getMessage());
+            }
+    }
 }
