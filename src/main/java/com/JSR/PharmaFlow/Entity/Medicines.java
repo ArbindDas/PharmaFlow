@@ -97,10 +97,10 @@ public class Medicines {
     private Status status;
 
 
-    @ManyToOne
-    @JoinColumn(name = "order_items_id" , nullable = false)
-    @JsonBackReference("orderitem-medicines")
-    private OrderItems orderItems;
+//    @ManyToOne
+//    @JoinColumn(name = "order_items_id" , nullable = false)
+//    @JsonBackReference("orderitem-medicines")
+//    private OrderItems orderItems;
 
 
 

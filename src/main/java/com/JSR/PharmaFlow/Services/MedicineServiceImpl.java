@@ -48,11 +48,37 @@ public class MedicineServiceImpl implements MedicineService {
 
     @Override
     public MedicineDto updateMedicine(MedicineDto medicineDto) {
+        // 1. Find existing medicine or throw exception
         Medicines existingMedicine = medicineRepository.findById(medicineDto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Medicine not found with id: " + medicineDto.getId()));
 
-        modelMapper.map(medicineDto, existingMedicine);
+        // 2. Update only non-null fields from DTO to entity
+        if (medicineDto.getName() != null) {
+            existingMedicine.setName(medicineDto.getName());
+        }
+        if (medicineDto.getDescription() != null) {
+            existingMedicine.setDescription(medicineDto.getDescription());
+        }
+        if (medicineDto.getPrice() != null) {
+            existingMedicine.setPrice(medicineDto.getPrice());
+        }
+        if (medicineDto.getStock() != null) {
+            existingMedicine.setStock(medicineDto.getStock());
+        }
+        if (medicineDto.getExpiryDate() != null) {
+            existingMedicine.setExpiryDate(medicineDto.getExpiryDate());
+        }
+        if (medicineDto.getStatus() != null) {
+            existingMedicine.setStatus(medicineDto.getStatus());
+        }
+        if (medicineDto.getImageUrl() != null) {
+            existingMedicine.setImageUrl(medicineDto.getImageUrl());
+        }
+
+        // 3. Save the updated entity
         Medicines updatedMedicine = medicineRepository.save(existingMedicine);
+
+        // 4. Map back to DTO and return
         return modelMapper.map(updatedMedicine, MedicineDto.class);
     }
 

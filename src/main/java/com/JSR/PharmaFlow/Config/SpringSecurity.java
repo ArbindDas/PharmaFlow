@@ -74,7 +74,10 @@ public class SpringSecurity {
                                 "/api/public/**",
                                 "/api/health/**",
                                 "/api/auth/forgot-password",
-                                "/api/files/**"
+                                "/api/files/**",
+                                "/check/**",
+                                "/api/chat-gpt/**",
+                                "/api/public/med/**"
 
                         ).permitAll()
 

@@ -1,16 +1,16 @@
-spring:
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope: email,profile,openid
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
-            authorization-grant-type: authorization_code
-        provider:
-          google: {}
+spring :
+  security :
+    oauth2 :
+      client :
+        registration :
+          google :
+            client-id : ${GOOGLE_CLIENT_ID}
+            client-secret : ${GOOGLE_CLIENT_SECRET}
+            scope : email,profile,openid
+            redirect-uri : http://localhost:8080/login/oauth2/code/google
+            authorization-grant-type : authorization_code
+        provider :
+          google : {}
 
 
   datasource :
@@ -65,9 +65,16 @@ logging :
 jwt :
   secret-key : ${JWT_SECRET}
   refresh-token-expiration : ${JWT_REFRESH_TOKEN_EXPIRATION}
-aws:
-  accessKeyId: ${AWS_ACCESS_KEY_ID}
-  secretKey: ${AWS_SECRET_ACCESS_KEY}
-  region: ${AWS_REGION}
-  s3:
-    bucket: ${AWS_S3_BUCKET}
+aws :
+  accessKeyId : ${AWS_ACCESS_KEY_ID}
+  secretKey : ${AWS_SECRET_ACCESS_KEY}
+  region : ${AWS_REGION}
+  s3 :
+    bucket : ${AWS_S3_BUCKET}
+
+  ai :
+    openai :
+      api-key : ${OPENAI_API_KEY}  # Fallback value after colon
+      audio :
+        speech :
+          enabled : false  # Disable if not using speech features

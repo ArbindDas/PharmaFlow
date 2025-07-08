@@ -110,7 +110,20 @@ public class S3Service {
 
     }
 
+    public void deleteFile(String imageUrl) {
+        try {
+            // Extract the key from the URL (URL is of format: https://bucket-name.s3.region.amazonaws.com/key)
+            String key = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
 
+            // Delete the object from S3
+            s3Client.deleteObject(builder -> builder
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete file from S3: " + e.getMessage(), e);
+        }
+    }
 
 
     // Inner class to hold file information

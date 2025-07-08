@@ -1,16 +1,10 @@
 package com.JSR.PharmaFlow.Services;
 
-import com.JSR.PharmaFlow.DTO.MedicineBasicDto;
 import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
-import com.JSR.PharmaFlow.Entity.OrderItems;
-import com.JSR.PharmaFlow.Entity.Users;
-import com.JSR.PharmaFlow.Exception.InsufficientStockException;
 import com.JSR.PharmaFlow.Repository.MedicinesRepository;
-import com.JSR.PharmaFlow.Repository.OrdersItemsRepository;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +12,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class MedicinesService {
@@ -34,8 +26,13 @@ public class MedicinesService {
     @Autowired
     private UsersRepository usersRepository;
 
+    private final ModelMapper modelMapper;
+
     private static final Logger logger = LoggerFactory.getLogger ( MedicinesService.class );
 
+    public MedicinesService( ModelMapper modelMapper ) {
+        this.modelMapper = modelMapper;
+    }
 
 
     public MedicineDto createMedicine(MedicineDto medicineDto){
@@ -88,6 +85,20 @@ public class MedicinesService {
                 .build ( );
     }
 
+
+//    public List<MedicineDto> getAllApprovedMedicines() {
+//        List <Medicines> approvedMedicines = medicinesRepository.findByStatus("APPROVED");
+//        return approvedMedicines.stream()
+//                .map(medicine -> modelMapper.map(medicine, MedicineDto.class))
+//                .collect( Collectors.toList());
+//    }
+
+public List<MedicineDto> getAllApprovedMedicines() {
+    List<Medicines> approvedMedicines = medicinesRepository.findByStatusIn(List.of("APPROVED", "PLACED"));
+    return approvedMedicines.stream()
+            .map(medicine -> modelMapper.map(medicine, MedicineDto.class))
+            .collect(Collectors.toList());
+}
 
 
 }

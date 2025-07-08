@@ -47,9 +47,9 @@ public class OrderItems {
 
 
 
-    @OneToMany(mappedBy = "orderItems" , cascade = CascadeType.ALL)
-    @JsonManagedReference("orderitem-medicines")
-    private List<Medicines>medicinesList = new ArrayList <> (  );
+//    @OneToMany(mappedBy = "orderItems" , cascade = CascadeType.ALL)
+//    @JsonManagedReference("orderitem-medicines")
+//    private List<Medicines>medicinesList = new ArrayList <> (  );
 
 
     @ManyToOne
