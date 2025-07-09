@@ -78,3 +78,5 @@ aws :
       audio :
         speech :
           enabled : false  # Disable if not using speech features
+    ollama:
+      api-model: ${OLLAMA_API_MODEL:deepseek-r1:7b}
