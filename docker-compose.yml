@@ -66,8 +66,10 @@ services:
 
 
       # Spring AI OpenAI Configuration (CRITICAL FIX)
-      SPRING_AI_OPENAI_API_KEY : ${OPENAI_API_KEY}  # This is the correct format
-      SPRING_AI_OPENAI_AUDIO_SPEECH_ENABLED : false
+      SPRING_AI_OLLAMA_BASE_URL : ${SPRING_AI_OLLAMA_BASE_URL}
+      SPRING_AI_OLLAMA_MODEL : ${SPRING_AI_OLLAMA_MODEL}
+
+
 
     depends_on:
       mysql:

@@ -10,7 +10,7 @@ import org.springframework.http.*;
 import java.util.*;
 
 @RestController
-@RequestMapping ( "/api/chat-gpt" )
+@RequestMapping ( "/api/ollama" )
 @CrossOrigin ( "*" )
 public class AIController {
 

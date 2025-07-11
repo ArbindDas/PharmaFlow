@@ -73,10 +73,6 @@ aws :
     bucket : ${AWS_S3_BUCKET}
 
   ai :
-    openai :
-      api-key : ${OPENAI_API_KEY}  # Fallback value after colon
-      audio :
-        speech :
-          enabled : false  # Disable if not using speech features
-    ollama:
-      api-model: ${OLLAMA_API_MODEL:deepseek-r1:7b}
+    ollama :
+      base-url : ${SPRING_AI_OLLAMA_BASE_URL}
+      model : ${SPRING_AI_OLLAMA_MODEL}
