@@ -1,6 +1,7 @@
 package com.JSR.PharmaFlow.DTO;
 
 
+import com.JSR.PharmaFlow.Enums.MedicineStatus;
 import com.JSR.PharmaFlow.Enums.Status;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +28,8 @@ public class MedicineDto {
     private LocalDate expiryDate;
     @NotBlank (message = "Image URL cannot be empty")  // or remove this if it's optional
     private String imageUrl;
-    private Status status;
+//    private Status status;
+    private MedicineStatus medicineStatus;
     @Nullable
     private Long createdBy;
     private Instant createdAt;

@@ -2,6 +2,7 @@ package com.JSR.PharmaFlow.Services;
 
 import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
+import com.JSR.PharmaFlow.Enums.MedicineStatus;
 import com.JSR.PharmaFlow.Repository.MedicinesRepository;
 import com.JSR.PharmaFlow.Exception.ResourceNotFoundException;
 import org.modelmapper.ModelMapper;
@@ -68,9 +69,13 @@ public class MedicineServiceImpl implements MedicineService {
         if (medicineDto.getExpiryDate() != null) {
             existingMedicine.setExpiryDate(medicineDto.getExpiryDate());
         }
-        if (medicineDto.getStatus() != null) {
-            existingMedicine.setStatus(medicineDto.getStatus());
+//        if (medicineDto.getStatus() != null) {
+//            existingMedicine.setStatus(medicineDto.getStatus());
+//        }
+        if (medicineDto.getMedicineStatus()!=null){
+            existingMedicine.setMedicineStatus(MedicineStatus.ADDED);
         }
+
         if (medicineDto.getImageUrl() != null) {
             existingMedicine.setImageUrl(medicineDto.getImageUrl());
         }

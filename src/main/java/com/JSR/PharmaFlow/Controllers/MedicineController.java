@@ -2,6 +2,7 @@ package com.JSR.PharmaFlow.Controllers;
 
 import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
+import com.JSR.PharmaFlow.Enums.MedicineStatus;
 import com.JSR.PharmaFlow.Enums.Status;
 import com.JSR.PharmaFlow.Exception.ResourceNotFoundException;
 import com.JSR.PharmaFlow.Repository.MedicinesRepository;
@@ -57,38 +58,71 @@ public class MedicineController {
         return "Endpoint is working";
     }
 
-    @PostMapping ( "/addMedicines" )
-    public ResponseEntity < ? > addMedicine(
-            @RequestParam ( "name" ) String name ,
-            @RequestParam ( "description" ) String description ,
-            @RequestParam ( "price" ) BigDecimal price ,
-            @RequestParam ( "stock" ) Integer stock ,
-            @RequestParam ( "expiryDate" ) LocalDate expiryDate ,
-            @RequestParam ( value = "image", required = false ) MultipartFile imageFile ,
-            @RequestParam ( "status" ) String statusStr ) {  // Removed createdBy parameter
+//    @PostMapping ( "/addMedicines" )
+//    public ResponseEntity < ? > addMedicine(
+//            @RequestParam ( "name" ) String name ,
+//            @RequestParam ( "description" ) String description ,
+//            @RequestParam ( "price" ) BigDecimal price ,
+//            @RequestParam ( "stock" ) Integer stock ,
+//            @RequestParam ( "expiryDate" ) LocalDate expiryDate ,
+//            @RequestParam ( value = "image", required = false ) MultipartFile imageFile ,
+//            @RequestParam ( "medicineStatus" ) String medicineStatusStr ) {  // Removed createdBy parameter
+//
+//        try {
+//            MedicineStatus status = MedicineStatus.valueOf( medicineStatusStr.toUpperCase () );
+//            String imageUrl = imageFile != null ? s3Service.uploadFile ( imageFile ) : null;
+//
+//            MedicineDto medicineDto = MedicineDto.builder ()
+//                    .name ( name )
+//                    .description ( description )
+//                    .price ( price )
+//                    .stock ( stock )
+//                    .expiryDate ( expiryDate )
+//                    .imageUrl ( imageUrl )
+//                    .medicineStatus (MedicineStatus.valueOf(medicineStatusStr))
+//                    .createdAt ( Instant.now () )
+//                    .build ();
+//
+//            MedicineDto savedMedicine = medicineService.addMedicine ( medicineDto );
+//            return ResponseEntity.status ( HttpStatus.CREATED ).body ( savedMedicine );
+//        } catch (Exception e) {
+//            return ResponseEntity.internalServerError ().body ( "Error: " + e.getMessage () );
+//        }
+//    }
+
+    @PostMapping("/addMedicines")
+    public ResponseEntity<?> addMedicine(
+            @RequestParam("name") String name,
+            @RequestParam("description") String description,
+            @RequestParam("price") BigDecimal price,
+            @RequestParam("stock") Integer stock,
+            @RequestParam("expiryDate") LocalDate expiryDate,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile,
+            @RequestParam("medicineStatus") String medicineStatusStr) {
 
         try {
-            Status status = Status.valueOf ( statusStr.toUpperCase () );
-            String imageUrl = imageFile != null ? s3Service.uploadFile ( imageFile ) : null;
+            MedicineStatus status = MedicineStatus.valueOf(medicineStatusStr.toUpperCase());
+            String imageUrl = imageFile != null ? s3Service.uploadFile(imageFile) : null;
 
-            MedicineDto medicineDto = MedicineDto.builder ()
-                    .name ( name )
-                    .description ( description )
-                    .price ( price )
-                    .stock ( stock )
-                    .expiryDate ( expiryDate )
-                    .imageUrl ( imageUrl )
-                    .status ( status )
-                    .createdAt ( Instant.now () )
-                    .build ();
+            MedicineDto medicineDto = MedicineDto.builder()
+                    .name(name)
+                    .description(description)
+                    .price(price)
+                    .stock(stock)
+                    .expiryDate(expiryDate)
+                    .imageUrl(imageUrl)
+                    .medicineStatus(status)  // Using the already converted enum
+                    .createdAt(Instant.now())
+                    .build();
 
-            MedicineDto savedMedicine = medicineService.addMedicine ( medicineDto );
-            return ResponseEntity.status ( HttpStatus.CREATED ).body ( savedMedicine );
+            MedicineDto savedMedicine = medicineService.addMedicine(medicineDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedMedicine);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid status value: " + medicineStatusStr);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError ().body ( "Error: " + e.getMessage () );
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
-
 
     @GetMapping ( "/getMedicines" )
     public ResponseEntity < List < MedicineDto > > getAllMedicines( ) {
@@ -156,11 +190,11 @@ public class MedicineController {
                 imageUrl = s3Service.uploadFile(imageFile);
             }
 
-            Status status;
+            MedicineStatus medicineStatus;
             try {
-                status = Status.valueOf(statusStr.toUpperCase());
+                medicineStatus = MedicineStatus.valueOf(statusStr.toUpperCase());
             } catch (IllegalArgumentException e) {
-                status = Status.PLACED; // Default to PLACED if invalid
+                medicineStatus = MedicineStatus.ADDED; // Default to PLACED if invalid
             }
 
             MedicineDto medicineDto = MedicineDto.builder()
@@ -171,7 +205,7 @@ public class MedicineController {
                     .stock(stock)
                     .expiryDate(expiryDate)
                     .imageUrl(imageUrl)
-                    .status(status)
+                    .medicineStatus(medicineStatus)
                     .createdAt(existing.getCreatedAt()) // Keep original creation date
                     .build();
 

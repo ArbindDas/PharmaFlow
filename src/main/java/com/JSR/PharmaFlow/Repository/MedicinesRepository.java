@@ -1,5 +1,6 @@
 package com.JSR.PharmaFlow.Repository;
 
+import com.JSR.PharmaFlow.Enums.MedicineStatus;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +17,8 @@ public interface MedicinesRepository extends  JpaRepository<Medicines, Long> {
     @Query ("SELECT m FROM Medicines m WHERE m.id = :id")
     Optional <Medicines> findByIdWithoutOrderItems( @Param ("id") Long id);
 
-    List<Medicines> findByStatus(String status);
+    List<Medicines> findByMedicineStatus(MedicineStatus status);
 
-    List< Medicines> findByStatusIn( List< String> approved );
+    List<Medicines> findByMedicineStatusIn(List<String> statuses);
+
 }

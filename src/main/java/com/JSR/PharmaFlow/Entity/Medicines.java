@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.JSR.PharmaFlow.Enums.MedicineStatus;
 import com.JSR.PharmaFlow.Enums.Status;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -91,16 +92,17 @@ public class Medicines {
     private String imageUrl;
 
 
+//    @Enumerated(EnumType.STRING)
+//    @NotNull(message = "Status must be defined")
+//    @Column(name = "status", nullable = false)
+//    private Status status;
+
     @Enumerated(EnumType.STRING)
-    @NotNull(message = "Status must be defined")
-    @Column(name = "status", nullable = false)
-    private Status status;
+    @NotNull(message="Medicine status must be defined")
+    @Column(name="medicineStatus",nullable=false)
+    private MedicineStatus medicineStatus;
 
 
-//    @ManyToOne
-//    @JoinColumn(name = "order_items_id" , nullable = false)
-//    @JsonBackReference("orderitem-medicines")
-//    private OrderItems orderItems;
 
 
 
@@ -115,6 +117,12 @@ public class Medicines {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    //    @ManyToOne
+//    @JoinColumn(name = "order_items_id" , nullable = false)
+//    @JsonBackReference("orderitem-medicines")
+//    private OrderItems orderItems;
+
 
     @PrePersist
     public void prePersist() {

@@ -66,7 +66,7 @@ public class MedicinesService {
                 .stock ( medicines.getStock () )
                 .expiryDate ( medicines.getExpiryDate () )
                 .imageUrl ( medicines.getImageUrl () )
-                .status ( medicines.getStatus () )
+                .medicineStatus ( medicines.getMedicineStatus () )
                 .createdBy ( medicines.getCreatedBy () != null ? medicines.getCreatedByUser ().getId () : null )
                 .build ( );
     }
@@ -81,7 +81,7 @@ public class MedicinesService {
                 .stock ( medicineDto.getStock () )
                 .expiryDate ( medicineDto.getExpiryDate () )
                 .imageUrl ( medicineDto.getImageUrl () )
-                .status ( medicineDto.getStatus () )
+                .medicineStatus ( medicineDto.getMedicineStatus () )
                 .build ( );
     }
 
@@ -94,7 +94,7 @@ public class MedicinesService {
 //    }
 
 public List<MedicineDto> getAllApprovedMedicines() {
-    List<Medicines> approvedMedicines = medicinesRepository.findByStatusIn(List.of("APPROVED", "PLACED"));
+    List<Medicines> approvedMedicines = medicinesRepository.findByMedicineStatusIn(List.of("ADDED" , "AVAILABLE"));
     return approvedMedicines.stream()
             .map(medicine -> modelMapper.map(medicine, MedicineDto.class))
             .collect(Collectors.toList());
