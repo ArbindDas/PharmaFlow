@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/public/med")  // Changed to match frontend expectation
+@RequestMapping("/api/public/med")
 @Slf4j
 @CrossOrigin ("*")
 public class PublicMedicineController {

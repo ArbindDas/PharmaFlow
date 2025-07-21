@@ -21,4 +21,7 @@ public interface MedicinesRepository extends  JpaRepository<Medicines, Long> {
 
     List<Medicines> findByMedicineStatusIn(List<String> statuses);
 
+    // This should be provided by JpaRepository by default
+    Optional<Medicines> findById(Long id);
+
 }

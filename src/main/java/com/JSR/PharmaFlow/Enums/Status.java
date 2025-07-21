@@ -8,7 +8,7 @@ public enum Status {
     SHIPPED,      // Order shipped
     DELIVERED,    // Order delivered
     CANCELLED,    // Order cancelled
-    RETURNED;     // Order returned
+    PENDING;     // Order returned
     // Optional: Add description for each status
     public String getDescription() {
         return switch (this) {
@@ -17,7 +17,7 @@ public enum Status {
             case SHIPPED -> "Order has been shipped";
             case DELIVERED -> "Order has been delivered";
             case CANCELLED -> "Order has been cancelled";
-            case RETURNED -> "Order has been returned";
+            case PENDING -> "Order has been pending";
         };
     }
 }

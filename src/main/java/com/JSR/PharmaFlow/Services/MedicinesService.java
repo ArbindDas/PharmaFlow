@@ -86,13 +86,6 @@ public class MedicinesService {
     }
 
 
-//    public List<MedicineDto> getAllApprovedMedicines() {
-//        List <Medicines> approvedMedicines = medicinesRepository.findByStatus("APPROVED");
-//        return approvedMedicines.stream()
-//                .map(medicine -> modelMapper.map(medicine, MedicineDto.class))
-//                .collect( Collectors.toList());
-//    }
-
 public List<MedicineDto> getAllApprovedMedicines() {
     List<Medicines> approvedMedicines = medicinesRepository.findByMedicineStatusIn(List.of("ADDED" , "AVAILABLE"));
     return approvedMedicines.stream()

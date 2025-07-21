@@ -92,17 +92,10 @@ public class Medicines {
     private String imageUrl;
 
 
-//    @Enumerated(EnumType.STRING)
-//    @NotNull(message = "Status must be defined")
-//    @Column(name = "status", nullable = false)
-//    private Status status;
-
     @Enumerated(EnumType.STRING)
     @NotNull(message="Medicine status must be defined")
     @Column(name="medicineStatus",nullable=false)
     private MedicineStatus medicineStatus;
-
-
 
 
 
@@ -118,7 +111,7 @@ public class Medicines {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    //    @ManyToOne
+//    @ManyToOne
 //    @JoinColumn(name = "order_items_id" , nullable = false)
 //    @JsonBackReference("orderitem-medicines")
 //    private OrderItems orderItems;
