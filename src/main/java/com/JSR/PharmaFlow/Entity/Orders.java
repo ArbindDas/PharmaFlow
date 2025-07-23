@@ -71,15 +71,21 @@ public class Orders {
     private List< OrderItems > orderItemsList = new ArrayList<>();
 
 
-    @OneToOne()
-    @JoinColumn(name = "prescription_id" , nullable = false , unique = true)
-    @JsonBackReference("prescription-orders") // Orders is the child / FK holder
-    private Prescription prescription;
+//    @OneToOne(optional=true)
+//    @JoinColumn(name = "prescription_id" , nullable = false , unique = true)
+//    @JsonBackReference("prescription-orders") // Orders is the child / FK holder
+//    private Prescription prescription;
+
+//    @OneToOne(optional = true)
+//    @JoinColumn(name = "prescription_id", nullable = true, unique = true)  // Change to nullable=true
+//    @JsonBackReference("prescription-orders")
+//    private Prescription prescription;
 
 
     @ManyToOne
     @JoinColumn(name = "user_id"  ,nullable = false)
     @JsonBackReference("user-orders")
     private Users users;
+
 
 }

@@ -3,10 +3,7 @@ package com.JSR.PharmaFlow.DTO;
 
 import com.JSR.PharmaFlow.Enums.Status;
 import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +14,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class OrderDetailResponse {
     private Long orderId;
     private BigDecimal totalPrice;

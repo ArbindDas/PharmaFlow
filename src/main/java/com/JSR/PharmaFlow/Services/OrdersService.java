@@ -3,11 +3,9 @@ package com.JSR.PharmaFlow.Services;
 import com.JSR.PharmaFlow.DTO.OrderItemDTO;
 import com.JSR.PharmaFlow.Entity.OrderItems;
 import com.JSR.PharmaFlow.Entity.Orders;
-import com.JSR.PharmaFlow.Entity.Prescription;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Enums.Status;
 import com.JSR.PharmaFlow.Repository.OrdersRepository;
-import com.JSR.PharmaFlow.Repository.PrescriptionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +30,6 @@ public class OrdersService {
     @Autowired
     private OrdersRepository ordersRepository;
 
-    @Autowired
-    private PrescriptionRepository prescriptionRepository;
 
     @Autowired
     private UsersService usersService;
@@ -123,33 +119,6 @@ public class OrdersService {
     }
 
 
-    @Transactional
-    public Orders saveOrderWithPrescription(BigDecimal totalPrice, Status status, String fileUrl) {
-        try {
-
-            Prescription prescription = Prescription.builder()
-                    .fileUrl(fileUrl)
-                    .status(status)
-                    .build();
-
-
-            Orders order = new Orders();
-            order.setTotalPrice(totalPrice);
-            order.setStatus(status);
-            order.setPrescription(prescription);
-
-
-            prescription.setOrders(order);
-
-
-            Orders savedOrder = ordersRepository.save(order);
-            logger.info("Order with prescription saved successfully. Order ID: {}", savedOrder.getId());
-            return savedOrder;
-        } catch (Exception e) {
-            logger.error("Failed to save order with prescription", e);
-            throw new RuntimeException("Error saving order with prescription", e);
-        }
-    }
 
 
     public Orders createOrder(List< OrderItemDTO > itemDtos) {

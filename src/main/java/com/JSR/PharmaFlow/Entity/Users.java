@@ -89,11 +89,6 @@ public class Users {
     private List < Orders > ordersList = new ArrayList <> ( );
     
 
-
-    @JsonManagedReference("user-prescriptions")
-    @OneToMany (mappedBy = "users", cascade = CascadeType.ALL)
-    private List < Prescription > prescriptionList = new ArrayList <> ( );
-
     @OneToMany(mappedBy = "createdByUser")
     @JsonManagedReference("user-created-medicines")
     private List<Medicines> createdMedicines = new ArrayList<>();
