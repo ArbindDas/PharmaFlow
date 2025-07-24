@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -19,9 +20,5 @@ public class OrderResponse {
     private BigDecimal totalPrice;
     private Status status;
     private Instant orderDate;
-
-    //    public OrderResponse(Long id , BigDecimal totalPrice , Status status , Instant createdAt){
-//    }
-
-    // constructor, getters, setters
+    private List<OrderItemDTO> items;
 }

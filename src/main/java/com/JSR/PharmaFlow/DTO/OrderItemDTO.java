@@ -1,9 +1,23 @@
 package com.JSR.PharmaFlow.DTO;
 
-import java.math.BigDecimal;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record OrderItemDTO(
-         String quantity,
-         BigDecimal unitPrice
-) {
-};
+import java.math.BigDecimal;
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+public class OrderItemDTO{
+    private Long medicineId;
+    private String medicineName;
+    private Integer quantity;
+    private  BigDecimal unitPrice;
+
+
+}

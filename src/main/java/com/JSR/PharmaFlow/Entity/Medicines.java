@@ -47,81 +47,82 @@ import lombok.Setter;
 @NoArgsConstructor
 @Builder
 @Data
-public class Medicines {
 
-    @Id
-    @GeneratedValue(
-            strategy = GenerationType.IDENTITY
-    )
-    private Long id;
+    public class Medicines {
 
-
-    @NotBlank(message = "Medicine name cannot be empty")
-    @Size(min = 2, max = 100, message = "Medicine name must be between 2 and 100 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9\\- ]+$", message = "Medicine name must only contain letters, numbers, hyphens and spaces")
-    @Column(name = "name", nullable = false)
-    private String name;
+        @Id
+        @GeneratedValue(
+                strategy = GenerationType.IDENTITY
+        )
+        private Long id;
 
 
-    @NotBlank(message = "Description cannot be empty")
-    @Size(max = 1000, message = "Description is too long")
-    @Column(name = "description", nullable = false)
-    private String description;
-
-    @NotNull(message = "Price cannot be null")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
-    @Digits(integer = 10, fraction = 2, message = "Price must be a valid decimal number")
-    @Column(name = "price", nullable = false)
-    private BigDecimal price;
+        @NotBlank(message = "Medicine name cannot be empty")
+        @Size(min = 2, max = 100, message = "Medicine name must be between 2 and 100 characters")
+        @Pattern(regexp = "^[a-zA-Z0-9\\- ]+$", message = "Medicine name must only contain letters, numbers, hyphens and spaces")
+        @Column(name = "name", nullable = false)
+        private String name;
 
 
-    @NotNull (message = "Stock cannot be null")
-    @Min (value = 0, message = "Stock cannot be negative")
-    @Column(name = "stock", nullable = false)
-    private Integer stock;
+        @NotBlank(message = "Description cannot be empty")
+        @Size(max = 1000, message = "Description is too long")
+        @Column(name = "description", nullable = false)
+        private String description;
 
-    @NotNull(message = "Expiry date is required")
-    @Future (message = "Expiry date must be in the future")
-    @Column(name = "expiry_date", nullable = false)
-    private LocalDate expiryDate;
-
-    @NotBlank (message = "Image URL cannot be empty")
-    @Size(max = 2048, message = "Image URL is too long")
-    @Pattern (regexp = "^(http|https)://.*\\.(jpg|jpeg|png|gif|webp)$", message = "Image URL must be a valid image URL")
-    @Column(name = "image_url", nullable = false)
-    private String imageUrl;
+        @NotNull(message = "Price cannot be null")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+        @Digits(integer = 10, fraction = 2, message = "Price must be a valid decimal number")
+        @Column(name = "price", nullable = false)
+        private BigDecimal price;
 
 
-    @Enumerated(EnumType.STRING)
-    @NotNull(message="Medicine status must be defined")
-    @Column(name="medicineStatus",nullable=false)
-    private MedicineStatus medicineStatus;
+        @NotNull (message = "Stock cannot be null")
+        @Min (value = 0, message = "Stock cannot be negative")
+        @Column(name = "stock", nullable = false)
+        private Integer stock;
+
+        @NotNull(message = "Expiry date is required")
+        @Future (message = "Expiry date must be in the future")
+        @Column(name = "expiry_date", nullable = false)
+        private LocalDate expiryDate;
+
+        @NotBlank (message = "Image URL cannot be empty")
+        @Size(max = 2048, message = "Image URL is too long")
+        @Pattern (regexp = "^(http|https)://.*\\.(jpg|jpeg|png|gif|webp)$", message = "Image URL must be a valid image URL")
+        @Column(name = "image_url", nullable = false)
+        private String imageUrl;
+
+
+        @Enumerated(EnumType.STRING)
+        @NotNull(message="Medicine status must be defined")
+        @Column(name="medicineStatus",nullable=false)
+        private MedicineStatus medicineStatus;
 
 
 
-    @Column(name = "created_by", insertable = false, updatable = false)
-    private Long createdBy; // Stores the ID of the user who created this medicine
+        @Column(name = "created_by", insertable = false, updatable = false)
+        private Long createdBy; // Stores the ID of the user who created this medicine
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", referencedColumnName = "id")
-    @JsonBackReference("user-created-medicines")
-    private Users createdByUser; // Reference to the actual User entity
-
-
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-
-//    @ManyToOne
-//    @JoinColumn(name = "order_items_id" , nullable = false)
-//    @JsonBackReference("orderitem-medicines")
-//    private OrderItems orderItems;
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "created_by", referencedColumnName = "id")
+        @JsonBackReference("user-created-medicines")
+        private Users createdByUser; // Reference to the actual User entity
 
 
-    @PrePersist
-    public void prePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = Instant.now();
+        @Column(name = "created_at", nullable = false)
+        private Instant createdAt;
+
+//        @ManyToOne
+//        @JoinColumn(name = "order_items_id" , nullable = false)
+//        @JsonBackReference("orderitem-medicines")
+//        private OrderItems orderItems;
+
+
+        @PrePersist
+        public void prePersist() {
+            if (this.createdAt == null) {
+                this.createdAt = Instant.now();
+            }
         }
-    }
 
-}
+    }

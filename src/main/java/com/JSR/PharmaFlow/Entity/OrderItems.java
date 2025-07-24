@@ -98,13 +98,14 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
 public class OrderItems {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String quantity;
+    private Integer quantity;
     private BigDecimal unitPrice;
 
     @ManyToOne
@@ -116,7 +117,7 @@ public class OrderItems {
     @JsonBackReference("order-items")
     private Orders orders;
 
-    public OrderItems(String quantity, BigDecimal unitPrice, Orders order) {
+    public OrderItems(Integer quantity, BigDecimal unitPrice, Orders order) {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.orders = order;

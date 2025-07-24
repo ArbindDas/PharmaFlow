@@ -37,6 +37,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
 public class Orders {
 
     @Id
@@ -70,16 +71,6 @@ public class Orders {
     @JsonManagedReference("order-items")
     private List< OrderItems > orderItemsList = new ArrayList<>();
 
-
-//    @OneToOne(optional=true)
-//    @JoinColumn(name = "prescription_id" , nullable = false , unique = true)
-//    @JsonBackReference("prescription-orders") // Orders is the child / FK holder
-//    private Prescription prescription;
-
-//    @OneToOne(optional = true)
-//    @JoinColumn(name = "prescription_id", nullable = true, unique = true)  // Change to nullable=true
-//    @JsonBackReference("prescription-orders")
-//    private Prescription prescription;
 
 
     @ManyToOne

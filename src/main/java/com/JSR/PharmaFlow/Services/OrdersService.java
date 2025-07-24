@@ -129,8 +129,8 @@ public class OrdersService {
         // Add order items
         for ( OrderItemDTO itemDto : itemDtos) {
             OrderItems item = new OrderItems(
-                    itemDto.quantity(),
-                    itemDto.unitPrice(),
+                    itemDto.getQuantity(),
+                    itemDto.getUnitPrice(),
                     order
             );
             order.setOrderItemsList(List.of(item));
@@ -141,7 +141,7 @@ public class OrdersService {
 
     private BigDecimal calculateTotal(List< OrderItemDTO > items) {
         return items.stream()
-                .map(i -> i.unitPrice().multiply(new BigDecimal(i.quantity())))
+                .map(i -> i.getUnitPrice().multiply(new BigDecimal(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
