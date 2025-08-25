@@ -22,11 +22,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -122,6 +120,7 @@ public class AuthController{
             SecurityContextHolder.getContext().setAuthentication(authentication);
             UserDetails userDetails=( UserDetails ) authentication.getPrincipal();
 
+
             String jwt=jwtUtil.generateToken(userDetails.getUsername().trim());
 
             log.info("the jwt token generated from backend -> "+jwt);
@@ -149,6 +148,9 @@ public class AuthController{
                 return ResponseEntity.badRequest()
                         .body(new Response.ApiResponse(false , "Email is already in use!"));
             }
+
+            System.out.println(signUpRequest.getEmail());
+
 
             if (usersRepository.existsByFullName(signUpRequest.getFullname())){
                 return ResponseEntity.badRequest()
@@ -217,94 +219,6 @@ public class AuthController{
         }
     }
 
-
-//    @GetMapping("/profile")
-//    public ResponseEntity<?> getUserProfile(Authentication authentication) {
-//
-//        if (authentication == null || !authentication.isAuthenticated()) {
-//            Map<String, Object> error = new HashMap<>();
-//            error.put("error", "Unauthorized");
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-//        }
-//
-//        Object principal = authentication.getPrincipal();
-//        if (!(principal instanceof UserDetails)) {
-//            Map<String, Object> error = new HashMap<>();
-//            error.put("error", "Unauthorized");
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-//        }
-//
-//        UserDetails userDetails = (UserDetails) principal;
-//        String email = userDetails.getUsername();
-//        String redisKey = "profile:" + sanitizeKey(email);
-//
-//
-//        Object cached = usersRedisTemplate.opsForValue().get(redisKey);
-//        if (cached instanceof Map<?, ?> map) {
-//            return ResponseEntity.ok(map);
-//        }
-//
-//
-//        // 2. If not found in Redis, build profile
-//        Map<String, Object> profile = new HashMap<>();
-//        profile.put("email", email);
-//
-//        List<String> roles = userDetails.getAuthorities()
-//                .stream()
-//                .map(GrantedAuthority::getAuthority)
-//                .collect(Collectors.toList());
-//        profile.put("roles", roles);
-//
-//        // 3. Store in Redis with TTL
-//        usersRedisTemplate.opsForValue().set(redisKey, profile, Duration.ofMinutes(5));
-//
-//        return ResponseEntity.ok(profile);
-//    }
-//
-//    @GetMapping("/profile")
-//    public ResponseEntity<?> getUserProfile(Authentication authentication) {
-//        if (authentication == null || !authentication.isAuthenticated()) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body(Map.of("error", "Unauthorized"));
-//        }
-//
-//        Object principal = authentication.getPrincipal();
-//        if (!(principal instanceof UserDetails userDetails)) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body(Map.of("error", "Unauthorized"));
-//        }
-//
-//        String email = userDetails.getUsername();
-//        String redisKey = "profile:" + sanitizeKey(email);
-//
-//        Object cached = usersRedisTemplate.opsForValue().get(redisKey);
-//        if (cached instanceof Map<?, ?> map) {
-//            return ResponseEntity.ok(map);
-//        }
-//
-//        Optional<Users> optionalUser = usersRepository.findByEmail(email);
-//        if (optionalUser.isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-//                    .body(Map.of("error", "User not found"));
-//        }
-//
-//        Users user = optionalUser.get();
-//
-//        Map<String, Object> profile = new HashMap<>();
-//        profile.put("id", user.getId());
-//        profile.put("email", user.getEmail());
-//        profile.put("full_name", user.getFullName());
-//        profile.put("auth_provider", user.getAuthProvider());
-//        profile.put("created_at", user.getCreatedAt());
-//        profile.put("roles", userDetails.getAuthorities()
-//                .stream()
-//                .map(GrantedAuthority::getAuthority)
-//                .collect(Collectors.toList()));
-//
-//        usersRedisTemplate.opsForValue().set(redisKey, profile, Duration.ofMinutes(5));
-//
-//        return ResponseEntity.ok(profile);
-//    }
 
     @GetMapping ( "/profile" )
     public ResponseEntity < ? > getUserProfile(Authentication authentication){
@@ -623,4 +537,7 @@ public class AuthController{
         dto.setAuthProvider(user.getAuthProvider());
         return dto;
     }
+
+
 }
+

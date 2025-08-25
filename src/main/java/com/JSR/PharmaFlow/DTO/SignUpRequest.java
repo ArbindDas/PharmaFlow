@@ -4,8 +4,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.*;
+
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class SignUpRequest {
 
     @NotBlank(message = "fullname must not be blank")

@@ -28,9 +28,7 @@ public class MedicineDto {
     private LocalDate expiryDate;
     @NotBlank (message = "Image URL cannot be empty")  // or remove this if it's optional
     private String imageUrl;
-//    private Status status;
     private MedicineStatus medicineStatus;
-    @Nullable
     private Long createdBy;
     private Instant createdAt;
 

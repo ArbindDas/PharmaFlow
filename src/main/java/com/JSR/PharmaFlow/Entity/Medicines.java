@@ -99,23 +99,8 @@ import lombok.Setter;
         private MedicineStatus medicineStatus;
 
 
-
-        @Column(name = "created_by", insertable = false, updatable = false)
-        private Long createdBy; // Stores the ID of the user who created this medicine
-
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "created_by", referencedColumnName = "id")
-        @JsonBackReference("user-created-medicines")
-        private Users createdByUser; // Reference to the actual User entity
-
-
         @Column(name = "created_at", nullable = false)
         private Instant createdAt;
-
-//        @ManyToOne
-//        @JoinColumn(name = "order_items_id" , nullable = false)
-//        @JsonBackReference("orderitem-medicines")
-//        private OrderItems orderItems;
 
 
         @PrePersist

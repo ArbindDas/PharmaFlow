@@ -52,7 +52,7 @@ public class Users {
     @Column (name = "email", nullable = false , unique = true)
     private String email;
 
-    @Column(name = "password", nullable = true)  // Now nullable!
+    @Column(name = "password", nullable = false)  // Now nullable!
     private String password;
 
 
@@ -87,12 +87,5 @@ public class Users {
     @OneToMany (mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("user-orders")
     private List < Orders > ordersList = new ArrayList <> ( );
-    
-
-    @OneToMany(mappedBy = "createdByUser")
-    @JsonManagedReference("user-created-medicines")
-    private List<Medicines> createdMedicines = new ArrayList<>();
-
-
 }
 

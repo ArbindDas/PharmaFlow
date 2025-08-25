@@ -1,5 +1,6 @@
 package com.JSR.PharmaFlow.Controllers;
 
+import com.JSR.PharmaFlow.DTO.CustomUserDetails;
 import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Enums.MedicineStatus;
@@ -23,7 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.security.core.Authentication;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -101,6 +102,9 @@ public class MedicineController {
             @RequestParam("medicineStatus") String medicineStatusStr) {
 
         try {
+
+
+
             MedicineStatus status = MedicineStatus.valueOf(medicineStatusStr.toUpperCase());
             String imageUrl = imageFile != null ? s3Service.uploadFile(imageFile) : null;
 
@@ -123,6 +127,7 @@ public class MedicineController {
             return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
+
 
     @GetMapping ( "/getMedicines" )
     public ResponseEntity < List < MedicineDto > > getAllMedicines( ) {
