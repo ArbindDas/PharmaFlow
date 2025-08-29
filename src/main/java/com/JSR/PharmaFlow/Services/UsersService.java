@@ -58,12 +58,7 @@ public class UsersService {
 
 
 
-//    @Autowired
-//    public UsersService ( UsersRepository usersRepository , BCryptPasswordEncoder passwordEncoder , AdminService adminService ) {
-//        this.usersRepository = usersRepository;
-//        this.passwordEncoder = passwordEncoder;
-//        this.adminService = adminService;
-//    }
+
 
 
 

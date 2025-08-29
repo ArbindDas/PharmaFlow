@@ -59,38 +59,6 @@ public class MedicineController {
         return "Endpoint is working";
     }
 
-//    @PostMapping ( "/addMedicines" )
-//    public ResponseEntity < ? > addMedicine(
-//            @RequestParam ( "name" ) String name ,
-//            @RequestParam ( "description" ) String description ,
-//            @RequestParam ( "price" ) BigDecimal price ,
-//            @RequestParam ( "stock" ) Integer stock ,
-//            @RequestParam ( "expiryDate" ) LocalDate expiryDate ,
-//            @RequestParam ( value = "image", required = false ) MultipartFile imageFile ,
-//            @RequestParam ( "medicineStatus" ) String medicineStatusStr ) {  // Removed createdBy parameter
-//
-//        try {
-//            MedicineStatus status = MedicineStatus.valueOf( medicineStatusStr.toUpperCase () );
-//            String imageUrl = imageFile != null ? s3Service.uploadFile ( imageFile ) : null;
-//
-//            MedicineDto medicineDto = MedicineDto.builder ()
-//                    .name ( name )
-//                    .description ( description )
-//                    .price ( price )
-//                    .stock ( stock )
-//                    .expiryDate ( expiryDate )
-//                    .imageUrl ( imageUrl )
-//                    .medicineStatus (MedicineStatus.valueOf(medicineStatusStr))
-//                    .createdAt ( Instant.now () )
-//                    .build ();
-//
-//            MedicineDto savedMedicine = medicineService.addMedicine ( medicineDto );
-//            return ResponseEntity.status ( HttpStatus.CREATED ).body ( savedMedicine );
-//        } catch (Exception e) {
-//            return ResponseEntity.internalServerError ().body ( "Error: " + e.getMessage () );
-//        }
-//    }
-
     @PostMapping("/addMedicines")
     public ResponseEntity<?> addMedicine(
             @RequestParam("name") String name,

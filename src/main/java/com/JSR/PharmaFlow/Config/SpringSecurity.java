@@ -84,10 +84,12 @@ public class SpringSecurity {
                         .requestMatchers(
                                 "/api/users/**",
                                 "/api/prescription/**",
-                                "/api/order/**",
+                                "/api/orders/**",
                                 "/api/order-item/**"
                         ).authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/admin").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

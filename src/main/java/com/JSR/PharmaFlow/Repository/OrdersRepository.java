@@ -35,6 +35,8 @@ public interface OrdersRepository extends JpaRepository < Orders, Long> {
     List <Orders> findByUsers(Users user);
 
     List< Orders> findByUsersIdOrderByCreatedAtDesc(Long userId);
+//    List<Orders> findByUsersIdOrderByCreatedAtDesc(Long userId);
+    List<Orders> findAllByOrderByCreatedAtDesc(); // Add this method
 
 //    @EntityGraph (attributePaths = {"user", "orderItems", "orderItems.medicine"})
 //    @Query ("SELECT o FROM Orders o WHERE o.id = :id")
