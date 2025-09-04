@@ -2,6 +2,8 @@ package com.JSR.PharmaFlow.DTO;
 
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
@@ -9,6 +11,11 @@ import java.util.List;
 public class OrderRequest {
     private double totalPrice;
     private List<OrderItemDto> orderItems;
+    @Getter
+    @Setter
+    private String paymentMethod; // Add this field
+    private String paymentIntentId; // Add this field
+
 
     @Data
     public static class OrderItemDto {
@@ -17,4 +24,5 @@ public class OrderRequest {
         private String quantity;
         private double unitPrice;
     }
+
 }

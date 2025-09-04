@@ -90,6 +90,7 @@ public class SpringSecurity {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders/admin").hasRole("ADMIN")
                         .requestMatchers("/api/orders/**").hasRole("ADMIN")
+                        .requestMatchers("/api/payment/**").permitAll() // Allow payment endpoints
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

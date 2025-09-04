@@ -50,6 +50,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis-cache
       SPRING_DATA_REDIS_PORT: 6379
       jwt.secret-key: ${JWT_SECRET}
+      STRIPE.SECRET.KEY: ${STRIPE_SECRET_KEY}
 
       # AWS Configuration (add these)
       AWS_ACCESS_KEY_ID : ${AWS_ACCESS_KEY_ID}

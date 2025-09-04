@@ -76,3 +76,7 @@ aws :
     ollama :
       base-url : ${SPRING_AI_OLLAMA_BASE_URL}
       model : ${SPRING_AI_OLLAMA_MODEL}
+# Stripe configuration
+stripe:
+  secret:
+    key: ${STRIPE_SECRET_KEY}
