@@ -3,8 +3,10 @@ package com.JSR.PharmaFlow.Services;
 import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Enums.MedicineStatus;
+import com.JSR.PharmaFlow.Exception.MedicineNotFoundException;
 import com.JSR.PharmaFlow.Repository.MedicinesRepository;
 import com.JSR.PharmaFlow.Exception.ResourceNotFoundException;
+import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +21,13 @@ public class MedicineServiceImpl implements MedicineService {
     private final MedicinesRepository medicineRepository;
     private final ModelMapper modelMapper;
 
+    private final OrderItemsRepository orderItemsRepository;
+
     public MedicineServiceImpl(MedicinesRepository medicineRepository,
-                               ModelMapper modelMapper) {
+                               ModelMapper modelMapper, OrderItemsRepository orderItemsRepository) {
         this.medicineRepository = medicineRepository;
         this.modelMapper = modelMapper;
+        this.orderItemsRepository = orderItemsRepository;
     }
 
     @Override
@@ -87,10 +92,35 @@ public class MedicineServiceImpl implements MedicineService {
         return modelMapper.map(updatedMedicine, MedicineDto.class);
     }
 
-    @Override
+//    @Override
+//    public void deleteMedicine(Long id) {
+//        Medicines medicine = medicineRepository.findById(id)
+//                .orElseThrow(() -> new ResourceNotFoundException("Medicine not found with id: " + id));
+//        medicineRepository.delete(medicine);
+//    }
+//@Override
+//public void deleteMedicine(Long id) {
+//    // First, check if medicine exists
+//    Medicines medicine = medicineRepository.findById(id)
+//            .orElseThrow(() -> new RuntimeException("Medicine not found with id: " + id));
+//
+//    // Delete related order items first
+//    orderItemsRepository.deleteByMedicineId(id);
+//
+//    // Then delete the medicine
+//    medicineRepository.deleteById(id);
+
+//}
+
+    @Transactional
     public void deleteMedicine(Long id) {
         Medicines medicine = medicineRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Medicine not found with id: " + id));
-        medicineRepository.delete(medicine);
+                .orElseThrow(() -> new RuntimeException("Medicine not found with id: " + id));
+
+        // Delete related order items first
+        orderItemsRepository.deleteByMedicineId(id);
+
+        // Then delete the medicine
+        medicineRepository.deleteById(id);
     }
 }

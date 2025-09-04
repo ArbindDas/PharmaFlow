@@ -4,6 +4,7 @@ import com.JSR.PharmaFlow.DTO.MedicineDto;
 import com.JSR.PharmaFlow.Entity.Medicines;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Enums.MedicineStatus;
+import com.JSR.PharmaFlow.Exception.MedicineNotFoundException;
 import com.JSR.PharmaFlow.Repository.MedicinesRepository;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
 import org.modelmapper.ModelMapper;
@@ -210,4 +211,13 @@ public class MedicinesService {
                 .map(medicines -> modelMapper.map(medicines, MedicineDto.class))
                 .collect(Collectors.toList());
     }
+
+
+    public void deleteMedicine(Long id) {
+        Medicines medicine = medicinesRepository.findById(id)
+                .orElseThrow();
+        medicine.setDeleted(true);
+        medicinesRepository.save(medicine);
+    }
+
 }

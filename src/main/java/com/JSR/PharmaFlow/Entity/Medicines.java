@@ -103,6 +103,10 @@ import lombok.Setter;
         private Instant createdAt;
 
 
+    @Column(name = "is_deleted")
+    private Boolean deleted = false;
+
+
         @PrePersist
         public void prePersist() {
             if (this.createdAt == null) {

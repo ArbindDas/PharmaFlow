@@ -33,9 +33,6 @@ public class AdminOrderResponse {
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
 
-//    public LocalDateTime getOrderDate() { return orderDate; }
-//    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-
     public String getUserName() { return userName; }
     public void setUserName(String userName) { this.userName = userName; }
 

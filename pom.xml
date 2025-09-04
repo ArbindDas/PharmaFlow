@@ -8,6 +8,10 @@
         <version>3.4.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
+
+
+
+
     <groupId>com.JSR</groupId>
     <artifactId>PharmaFlow</artifactId>
     <version>0.0.1-SNAPSHOT</version>
