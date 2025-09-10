@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.management.relation.RoleNotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -439,4 +440,42 @@ public class UsersService {
                 role.name().equals("ROLE_ADMIN");
     }
 
+
+    // In your UserService class
+    public Users findByEmail(String email) {
+        return usersRepository.findByEmail(email)
+                .orElse(null);
+    }
+
+    public void processOAuthPostLogin(String email, String name, String picture) {
+        Users user = findByEmail(email);
+
+        if (user == null) {
+            // Create new user for OAuth login
+            user = new Users();
+            user.setEmail(email);
+            user.setFullName(name);
+            // For OAuth users, you might want to handle password differently
+            // Since they login via OAuth, you can set a random password or null
+            user.setPassword(generateRandomPassword()); // Or set to null if your entity allows it
+            user.setRoles(Set.of(Role.USER)); // Use your actual Role enum
+            user.setAuthProvider(OAuthProvider.GOOGLE); // Use your OAuthProvider enum
+            user.setCreatedAt(Instant.now());
+
+            // Save the user
+            usersRepository.save(user);
+        } else {
+            // Update existing user if needed
+            user.setFullName(name);
+            // You might want to update other fields if necessary
+            usersRepository.save(user);
+        }
+    }
+
+    // Helper method to generate random password for OAuth users
+    private String generateRandomPassword() {
+        // Generate a secure random password that won't be used for login
+        // since OAuth users authenticate via Google
+        return java.util.UUID.randomUUID().toString();
+    }
 }

@@ -1,5 +1,6 @@
 package com.JSR.PharmaFlow.Repository;
 
+import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -22,5 +23,5 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     void  deleteByFullName(String username);
 
 
-
+    Optional<Users> findByEmailAndAuthProvider(String email, OAuthProvider oAuthProvider);
 }

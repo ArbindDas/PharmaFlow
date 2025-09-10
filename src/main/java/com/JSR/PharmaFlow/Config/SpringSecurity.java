@@ -1,13 +1,13 @@
 package com.JSR.PharmaFlow.Config;
 import com.JSR.PharmaFlow.Filters.JwtFilter;
-import com.JSR.PharmaFlow.Filters.OAuth2StateValidationFilter;
-import com.JSR.PharmaFlow.oauth.CustomOAuth2UserService;
+import com.JSR.PharmaFlow.Services.CustomOAuth2UserService;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
 import com.JSR.PharmaFlow.oauth.OAuth2FailureHandler;
 import com.JSR.PharmaFlow.oauth.OAuth2SuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -16,15 +16,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+import com.JSR.PharmaFlow.Config.PasswordConfig;
 
 @Configuration
 @EnableWebSecurity
@@ -38,7 +39,11 @@ public class SpringSecurity {
     private final OAuth2FailureHandler oAuth2FailureHandler;
 
     @Autowired
-    public SpringSecurity( JwtFilter jwtFilter , CustomUserDetailsService userDetailsService , OAuth2SuccessHandler oAuth2LoginSuccessHandler , OAuth2SuccessHandler oAuth2SuccessHandler , CustomOAuth2UserService customOAuth2UserService , JwtAuthEntryPoint authEntryPoint , OAuth2FailureHandler oAuth2FailureHandler ) {
+    public SpringSecurity( JwtFilter jwtFilter , CustomUserDetailsService userDetailsService ,
+                           OAuth2SuccessHandler oAuth2LoginSuccessHandler ,
+                            OAuth2SuccessHandler oAuth2SuccessHandler ,
+                           CustomOAuth2UserService customOAuth2UserService ,
+                           JwtAuthEntryPoint authEntryPoint , OAuth2FailureHandler oAuth2FailureHandler ) {
         this.jwtFilter = jwtFilter;
         this.userDetailsService = userDetailsService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
@@ -47,29 +52,92 @@ public class SpringSecurity {
         this.oAuth2FailureHandler = oAuth2FailureHandler;
     }
 
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .csrf( AbstractHttpConfigurer :: disable )
+//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+//                .exceptionHandling(exception -> exception
+//                        .authenticationEntryPoint(authEntryPoint)  // Handle 401 errors
+//                )
+//                .sessionManagement(session -> session
+//                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)  // Recommended for JWT
+//                )
+//                .authorizeHttpRequests(auth -> auth
+//                        // Public endpoints (React, Auth, Health checks)
+//                        .requestMatchers(
+//                                "/api/medicines/getMedicines",
+//                                "/api/medicines/test"
+//                        ).permitAll()
+//                        .requestMatchers(HttpMethod.POST, "/api/medicines/**").authenticated()
+//                        .requestMatchers(HttpMethod.PUT, "/api/medicines/**").authenticated()
+//                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/").authenticated()
+//                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
+//                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
+//                        .requestMatchers("/oauth2/state").permitAll()
+//                        .requestMatchers("/api/user/me").authenticated()
+//                        .requestMatchers(
+//                                "/", "/login**", "/oauth2/**",  // OAuth2 & React routes
+//                                "/api/auth/**",
+//                                "/api/public/**",
+//                                "/api/health/**",
+//                                "/api/auth/forgot-password",
+//                                "/api/files/**",
+//                                "/check/**",
+//                                "/api/ollama/**",
+//                                "/api/public/med/**"
+//
+//                        ).permitAll()
+//
+//                        .requestMatchers(
+//                                "/api/users/**",
+//                                "/api/prescription/**",
+//                                "/api/orders/**",
+//                                "/api/order-item/**"
+//                        ).authenticated()
+//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/api/orders/admin").hasRole("ADMIN")
+//                        .requestMatchers("/api/orders/**").hasRole("ADMIN")
+//                        .requestMatchers("/api/payment/**").permitAll() // Allow payment endpoints
+//                        .anyRequest().authenticated()
+//                )
+//
+//                .oauth2Login(oauth2 -> oauth2
+//                        .userInfoEndpoint(userInfo -> userInfo
+//                                .userService(customOAuth2UserService)
+//                        )
+//
+//                        .defaultSuccessUrl("http://localhost:3000/oauth-success", true)
+//                        .successHandler(oAuth2SuccessHandler)
+//                        .failureHandler(oAuth2FailureHandler)
+//                )
+//
+//
+//
+//                // JWT filter (before UsernamePasswordAuth)
+//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+//
+//
+//        return http.build();
+//    }
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf( AbstractHttpConfigurer :: disable )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authEntryPoint)  // Handle 401 errors
+                        .authenticationEntryPoint(authEntryPoint)
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Recommended for JWT
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Flexible session management
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints (React, Auth, Health checks)
                         .requestMatchers(
                                 "/api/medicines/getMedicines",
-                                "/api/medicines/test"
-                        ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/medicines/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/medicines/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/").authenticated()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
-                        .requestMatchers(
-                                "/", "/login**", "/oauth2/**",  // OAuth2 & React routes
+                                "/api/medicines/test",
+                                "/login/oauth2/**",
+                                "/oauth2/**",
                                 "/api/auth/**",
                                 "/api/public/**",
                                 "/api/health/**",
@@ -77,47 +145,39 @@ public class SpringSecurity {
                                 "/api/files/**",
                                 "/check/**",
                                 "/api/ollama/**",
-                                "/api/public/med/**"
-
+                                "/api/public/med/**",
+                                "/api/payment/**"
                         ).permitAll()
-
-                        .requestMatchers(
-                                "/api/users/**",
-                                "/api/prescription/**",
-                                "/api/orders/**",
-                                "/api/order-item/**"
-                        ).authenticated()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/orders/admin").hasRole("ADMIN")
-                        .requestMatchers("/api/orders/**").hasRole("ADMIN")
-                        .requestMatchers("/api/payment/**").permitAll() // Allow payment endpoints
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(auth -> auth
-                                .baseUri("/oauth2/authorization")  // Google OAuth2 starts here
-                        )
-                        .redirectionEndpoint(redirect -> redirect
-                                .baseUri("/login/oauth2/code/*")  // Google redirects here
-                        )
                         .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)  // Custom OAuth2 user handling
+                                .userService(customOAuth2UserService)
                         )
-                        .successHandler(oAuth2SuccessHandler)  // JWT token generation after OAuth2 success
+                        .defaultSuccessUrl("http://localhost:3000/oauth-success", true)
+                        .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )
-
-                // JWT filter (before UsernamePasswordAuth)
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                // OAuth2 state validation (security)
-                .addFilterBefore(oauth2StateValidationFilter(), OAuth2AuthorizationRequestRedirectFilter.class);
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers(
+                                "/oauth2/**",
+                                "/login/**",
+                                "/api/auth/**",
+                                "/api/public/**",
+                                "/api/health/**"
+                        )
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder( ) {
-        return new BCryptPasswordEncoder ( );
+        return new BCryptPasswordEncoder (    );
     }
 
     @Bean
@@ -152,6 +212,8 @@ public class SpringSecurity {
         ));
 
         config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("Set-Cookie")); // Expose cookies
+        config.setExposedHeaders(List.of("X-CSRF-TOKEN")); // Expose CSRF token
 
         // Exposed headers (add S3-specific headers)
         config.setExposedHeaders(Arrays.asList(
@@ -170,9 +232,6 @@ public class SpringSecurity {
         return source;
     }
 
-    @Bean
-    public OAuth2StateValidationFilter oauth2StateValidationFilter( ) {
-        return new OAuth2StateValidationFilter ( );
-    }
+
 
 }

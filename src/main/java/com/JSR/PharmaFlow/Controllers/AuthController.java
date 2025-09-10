@@ -291,41 +291,119 @@ public class AuthController{
     }
 
 
-    @GetMapping ( "/get-all-users" )
-    public ResponseEntity < ? > getAllUsers(){
+//    @GetMapping ( "/get-all-users" )
+//    public ResponseEntity < ? > getAllUsers(){
+//        try {
+//            Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+//            String authenticatedUser=authentication.getName();
+//
+//            log.info("Authenticated user {} is attempting to fetch all users" , authenticatedUser);
+//
+//            String redisKey="all_users";
+//
+//
+//            Object cached=usersRedisTemplate.opsForValue().get(redisKey);
+//            if (cached instanceof List < ? > cachedList){
+//                log.info("Returning {} users from cache" , cachedList.size());
+//                return ResponseEntity.ok(cachedList);
+//            }
+//
+//
+//            log.info("Cache miss - querying database");
+//            List < ? > users=usersService.getAllUsers();
+//            if (! users.isEmpty()){
+//                log.info("Fetched {} users from DB" , users.size());
+//
+//                usersRedisTemplate.opsForValue().set(redisKey , users , 2 , TimeUnit.MINUTES);
+//                log.info("Cached {} users with key {}" , users.size() , redisKey);
+//                return ResponseEntity.ok(Map.of("status" , "success" , "data" , users));
+//
+//            } else{
+//                return new ResponseEntity <>(HttpStatus.NOT_FOUND);
+//            }
+//        } catch( Exception e ){
+//            log.error("Error fetching users: {}" , e.getMessage() , e);
+//            return new ResponseEntity <>("Failed to fetch users. Please try again later." , HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+    @GetMapping("/get-all-users")
+    public ResponseEntity<?> getAllUsers() {
         try {
-            Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-            String authenticatedUser=authentication.getName();
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String authenticatedUser = authentication.getName();
 
-            log.info("Authenticated user {} is attempting to fetch all users" , authenticatedUser);
+            log.info("Authenticated user {} is attempting to fetch all users", authenticatedUser);
 
-            String redisKey="all_users";
+            String redisKey = "all_users";
 
-
-            Object cached=usersRedisTemplate.opsForValue().get(redisKey);
-            if (cached instanceof List < ? > cachedList){
-                log.info("Returning {} users from cache" , cachedList.size());
+            Object cached = usersRedisTemplate.opsForValue().get(redisKey);
+            if (cached instanceof List<?> cachedList) {
+                log.info("Returning {} users from cache", cachedList.size());
                 return ResponseEntity.ok(cachedList);
             }
 
-
             log.info("Cache miss - querying database");
-            List < ? > users=usersService.getAllUsers();
-            if (! users.isEmpty()){
-                log.info("Fetched {} users from DB" , users.size());
+            List<Users> users = (List<Users>) usersService.getAllUsers();
 
-                usersRedisTemplate.opsForValue().set(redisKey , users , 2 , TimeUnit.MINUTES);
-                log.info("Cached {} users with key {}" , users.size() , redisKey);
-                return ResponseEntity.ok(Map.of("status" , "success" , "data" , users));
+            if (!users.isEmpty()) {
+                log.info("Fetched {} users from DB", users.size());
 
-            } else{
-                return new ResponseEntity <>(HttpStatus.NOT_FOUND);
+                // ✅ Apply Merge Sort by username (you can change to email/id/etc.)
+                Users[] arr = users.toArray(new Users[0]);
+                mergeSort(arr, 0, arr.length - 1);
+                List<Users> sortedUsers = Arrays.asList(arr);
+
+                usersRedisTemplate.opsForValue().set(redisKey, sortedUsers, 2, TimeUnit.MINUTES);
+                log.info("Cached {} users with key {}", sortedUsers.size(), redisKey);
+
+                return ResponseEntity.ok(Map.of("status", "success", "data", sortedUsers));
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-        } catch( Exception e ){
-            log.error("Error fetching users: {}" , e.getMessage() , e);
-            return new ResponseEntity <>("Failed to fetch users. Please try again later." , HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            log.error("Error fetching users: {}", e.getMessage(), e);
+            return new ResponseEntity<>("Failed to fetch users. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+    private void mergeSort(Users[] arr, int left, int right) {
+        if (left < right) {
+            int mid = (left + right) / 2;
+
+            mergeSort(arr, left, mid);
+            mergeSort(arr, mid + 1, right);
+
+            merge(arr, left, mid, right);
+        }
+    }
+
+    private void merge(Users[] arr, int left, int mid, int right) {
+        int n1 = mid - left + 1;
+        int n2 = right - mid;
+
+        Users[] L = new Users[n1];
+        Users[] R = new Users[n2];
+
+        for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+        for (int j = 0; j < n2; j++) R[j] = arr[mid + 1 + j];
+
+        int i = 0, j = 0, k = left;
+
+        while (i < n1 && j < n2) {
+            // ✅ Sort by username (ignore case)
+            if (L[i].getId().compareTo(R[j].getId()) <= 0) {
+                arr[k++] = L[i++];
+            } else {
+                arr[k++] = R[j++];
+            }
+        }
+
+        while (i < n1) arr[k++] = L[i++];
+        while (j < n2) arr[k++] = R[j++];
+    }
+
 
 
     @DeleteMapping ( "/users/{userId}" )

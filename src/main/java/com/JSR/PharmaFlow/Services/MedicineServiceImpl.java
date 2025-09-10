@@ -10,7 +10,7 @@ import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -112,10 +112,32 @@ public class MedicineServiceImpl implements MedicineService {
 
 //}
 
+//    @Transactional
+//    public void deleteMedicine(Long id) {
+//        Medicines medicine = medicineRepository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Medicine not found with id: " + id));
+//
+//        // Delete related order items first
+//        orderItemsRepository.deleteByMedicineId(id);
+//
+//        // Then delete the medicine
+//        medicineRepository.deleteById(id);
+//    }
+
     @Transactional
     public void deleteMedicine(Long id) {
-        Medicines medicine = medicineRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medicine not found with id: " + id));
+        // Fetch all medicines from DB
+        List<Medicines> medicines = medicineRepository.findAll();
+
+        // Sort by ID
+        medicines.sort(Comparator.comparing(Medicines::getId));
+
+        // Search using binary search
+        Medicines medicine = binarySearchById(medicines, id);
+
+        if (medicine == null) {
+            throw new RuntimeException("Medicine not found with id: " + id);
+        }
 
         // Delete related order items first
         orderItemsRepository.deleteByMedicineId(id);
@@ -123,4 +145,23 @@ public class MedicineServiceImpl implements MedicineService {
         // Then delete the medicine
         medicineRepository.deleteById(id);
     }
+
+    private Medicines binarySearchById(List<Medicines> medicines, Long targetId) {
+        int left = 0, right = medicines.size() - 1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            Long midId = medicines.get(mid).getId();
+
+            if (midId.equals(targetId)) {
+                return medicines.get(mid);  // Found
+            } else if (midId < targetId) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return null; // Not found
+    }
+
 }

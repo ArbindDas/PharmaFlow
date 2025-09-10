@@ -73,6 +73,12 @@ public class JwtUtil {
         return createToken( claims, username );
     }
 
+
+
+    long FIFTEEN_MINUTES = 1000 * 60 * 15; // -> 15 minutes
+    long ONE_HOUR = 1000 * 60 * 60; // -> 1 hours
+    long ONE_DAY = 1000 * 60 * 60 * 24; // -> one day
+
     private String createToken( Map< String, Object > claims, String subject ) {
         return Jwts.builder()
                 .claims( claims )
@@ -80,7 +86,8 @@ public class JwtUtil {
                 .header().empty().add( "typ", "JWT" )
                 .and()
                 .issuedAt( new Date( System.currentTimeMillis() ) )
-                .expiration( new Date( System.currentTimeMillis() + 1000 * 60 * 60 ) ) // 1 hour expiration
+//                .expiration( new Date( System.currentTimeMillis() + 1000 * 60 * 60 ) ) // 1 hour expiration
+                .expiration(new Date(System.currentTimeMillis()+ONE_HOUR))
                 .signWith( getSigningKey() )
                 .compact();
     }
