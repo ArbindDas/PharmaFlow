@@ -52,76 +52,6 @@ public class SpringSecurity {
         this.oAuth2FailureHandler = oAuth2FailureHandler;
     }
 
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .csrf( AbstractHttpConfigurer :: disable )
-//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-//                .exceptionHandling(exception -> exception
-//                        .authenticationEntryPoint(authEntryPoint)  // Handle 401 errors
-//                )
-//                .sessionManagement(session -> session
-//                        .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)  // Recommended for JWT
-//                )
-//                .authorizeHttpRequests(auth -> auth
-//                        // Public endpoints (React, Auth, Health checks)
-//                        .requestMatchers(
-//                                "/api/medicines/getMedicines",
-//                                "/api/medicines/test"
-//                        ).permitAll()
-//                        .requestMatchers(HttpMethod.POST, "/api/medicines/**").authenticated()
-//                        .requestMatchers(HttpMethod.PUT, "/api/medicines/**").authenticated()
-//                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/").authenticated()
-//                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
-//                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
-//                        .requestMatchers("/oauth2/state").permitAll()
-//                        .requestMatchers("/api/user/me").authenticated()
-//                        .requestMatchers(
-//                                "/", "/login**", "/oauth2/**",  // OAuth2 & React routes
-//                                "/api/auth/**",
-//                                "/api/public/**",
-//                                "/api/health/**",
-//                                "/api/auth/forgot-password",
-//                                "/api/files/**",
-//                                "/check/**",
-//                                "/api/ollama/**",
-//                                "/api/public/med/**"
-//
-//                        ).permitAll()
-//
-//                        .requestMatchers(
-//                                "/api/users/**",
-//                                "/api/prescription/**",
-//                                "/api/orders/**",
-//                                "/api/order-item/**"
-//                        ).authenticated()
-//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/orders/admin").hasRole("ADMIN")
-//                        .requestMatchers("/api/orders/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/payment/**").permitAll() // Allow payment endpoints
-//                        .anyRequest().authenticated()
-//                )
-//
-//                .oauth2Login(oauth2 -> oauth2
-//                        .userInfoEndpoint(userInfo -> userInfo
-//                                .userService(customOAuth2UserService)
-//                        )
-//
-//                        .defaultSuccessUrl("http://localhost:3000/oauth-success", true)
-//                        .successHandler(oAuth2SuccessHandler)
-//                        .failureHandler(oAuth2FailureHandler)
-//                )
-//
-//
-//
-//                // JWT filter (before UsernamePasswordAuth)
-//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-//
-//
-//        return http.build();
-//    }
-
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -130,9 +60,10 @@ public class SpringSecurity {
                         .authenticationEntryPoint(authEntryPoint)
                 )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Flexible session management
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints - should come FIRST
                         .requestMatchers(
                                 "/api/medicines/getMedicines",
                                 "/api/medicines/test",
@@ -149,7 +80,12 @@ public class SpringSecurity {
                                 "/api/payment/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Role-based and authenticated endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/**").authenticated()
+
+                        // Any other request - should ALWAYS come LAST
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -167,7 +103,9 @@ public class SpringSecurity {
                                 "/login/**",
                                 "/api/auth/**",
                                 "/api/public/**",
-                                "/api/health/**"
+                                "/api/health/**",
+                                "/api/orders/**" , // ADD THIS LINE to ignore CSRF for orders API
+                                "/api/payment/**"
                         )
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -209,9 +147,11 @@ public class SpringSecurity {
                 "Content-Disposition",
                 "x-amz-acl",
                 "x-amz-meta-*"
+
         ));
 
         config.setAllowCredentials(true);
+        config.addExposedHeader("Authorization");
         config.setExposedHeaders(List.of("Set-Cookie")); // Expose cookies
         config.setExposedHeaders(List.of("X-CSRF-TOKEN")); // Expose CSRF token
 

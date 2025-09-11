@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -155,24 +156,102 @@ public class OrderController {
 //    }
 
 
+//    @Transactional
+//    @PostMapping
+//    public ResponseEntity<?> createOrder(@RequestBody OrderRequest orderRequest) {
+//        try {
+//            log.info("Creating order with payment method: {}", orderRequest.getPaymentMethod());
+//
+//            // Get authenticated user
+//            Users user = usersRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+//                    .orElseThrow(() -> new RuntimeException("User not found"));
+//
+//            // Create and save order
+//            Orders order = new Orders();
+//            order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
+//            order.setStatus(Status.PENDING);
+//            order.setUsers(user);
+//
+//            // Set payment method if your Orders entity has this field
+//            // order.setPaymentMethod(orderRequest.getPaymentMethod());
+//
+//            Orders savedOrder = ordersRepository.save(order);
+//
+//            // Create and save order items
+//            List<OrderItems> orderItems = new ArrayList<>();
+//            for (OrderRequest.OrderItemDto item : orderRequest.getOrderItems()) {
+//                Medicines medicine = medicinesRepository.findById(item.getMedicineId())
+//                        .orElseThrow(() -> new RuntimeException("Medicine with ID " + item.getMedicineId() + " not found"));
+//
+//                OrderItems orderItem = new OrderItems();
+//                orderItem.setQuantity(Integer.valueOf(item.getQuantity()));
+//                orderItem.setUnitPrice(BigDecimal.valueOf(item.getUnitPrice()));
+//                orderItem.setOrders(savedOrder);
+//                orderItem.setMedicine(medicine);
+//
+//                orderItems.add(orderItem);
+//            }
+//
+//            orderItemsRepository.saveAll(orderItems);
+//
+//            log.info("Order created successfully with ID: {}", savedOrder.getId());
+//            return ResponseEntity.ok(savedOrder);
+//
+//        } catch (Exception e) {
+//            log.error("Error creating order: ", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("Error creating order: " + e.getMessage());
+//        }
+//    }
+
+
+
     @Transactional
     @PostMapping
-    public ResponseEntity<?> createOrder(@RequestBody OrderRequest orderRequest) {
+    public ResponseEntity<?> createOrder(@RequestBody OrderRequest orderRequest,
+                                         @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            log.info("Creating order with payment method: {}", orderRequest.getPaymentMethod());
+            log.info("=== ORDER CREATION STARTED ===");
+            log.info("Received Authorization header: {}", authHeader);
+
+            // Check authentication context
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            log.info("Authentication object: {}", authentication);
+
+            if (authentication == null) {
+                log.error("Authentication is NULL");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+            }
+
+            log.info("Authentication name: {}", authentication.getName());
+            log.info("Authentication authorities: {}", authentication.getAuthorities());
+            log.info("Is authenticated: {}", authentication.isAuthenticated());
+
+            // Check if user is anonymous (not properly authenticated)
+            if (authentication instanceof AnonymousAuthenticationToken) {
+                log.error("User is anonymous (not properly authenticated)");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Anonymous user not allowed");
+            }
+
+            if ("anonymousUser".equals(authentication.getName())) {
+                log.error("User is anonymousUser - authentication failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
+            }
 
             // Get authenticated user
-            Users user = usersRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Users user = usersRepository.findByEmail(authentication.getName())
+                    .orElseThrow(() -> {
+                        log.error("User not found in database: {}", authentication.getName());
+                        return new RuntimeException("User not found");
+                    });
+
+            log.info("Creating order for user: {}", user.getEmail());
 
             // Create and save order
             Orders order = new Orders();
             order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
             order.setStatus(Status.PENDING);
             order.setUsers(user);
-
-            // Set payment method if your Orders entity has this field
-            // order.setPaymentMethod(orderRequest.getPaymentMethod());
 
             Orders savedOrder = ordersRepository.save(order);
 
