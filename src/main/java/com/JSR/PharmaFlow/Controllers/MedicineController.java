@@ -56,7 +56,7 @@ public class MedicineController {
     }
 
 
-    @PostMapping ( "/add" )
+    @GetMapping ( "/add" )
     public String testAdd( ) {
         return "Endpoint is working";
     }

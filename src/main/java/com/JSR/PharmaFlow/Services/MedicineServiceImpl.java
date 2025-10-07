@@ -109,7 +109,7 @@ public class MedicineServiceImpl implements MedicineService {
 //
 //    // Then delete the medicine
 //    medicineRepository.deleteById(id);
-
+//
 //}
 
 //    @Transactional
@@ -145,7 +145,7 @@ public class MedicineServiceImpl implements MedicineService {
         // Then delete the medicine
         medicineRepository.deleteById(id);
     }
-
+//
     private Medicines binarySearchById(List<Medicines> medicines, Long targetId) {
         int left = 0, right = medicines.size() - 1;
 

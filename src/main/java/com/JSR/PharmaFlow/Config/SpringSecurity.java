@@ -67,6 +67,7 @@ public class SpringSecurity {
                         .requestMatchers(
                                 "/api/medicines/getMedicines",
                                 "/api/medicines/test",
+                                "/api/medicines/add",
                                 "/login/oauth2/**",
                                 "/oauth2/**",
                                 "/api/auth/**",
@@ -80,13 +81,20 @@ public class SpringSecurity {
                                 "/api/payment/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // ✅ Allow anyone to delete medicines
+//                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/**").permitAll()
+
 
                         // Role-based and authenticated endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders/**").authenticated()
 
+
+
                         // Any other request - should ALWAYS come LAST
                         .anyRequest().authenticated()
+
+
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
@@ -105,7 +113,8 @@ public class SpringSecurity {
                                 "/api/public/**",
                                 "/api/health/**",
                                 "/api/orders/**" , // ADD THIS LINE to ignore CSRF for orders API
-                                "/api/payment/**"
+                                "/api/payment/**",
+                                "/api/medicines/**"   // ✅ Add this line
                         )
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
