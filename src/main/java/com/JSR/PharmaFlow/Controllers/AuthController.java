@@ -188,37 +188,53 @@ public class AuthController{
     }
 
 
-    @PostMapping ( "/forgot-password" )  // Make sure this matches your frontend
-    public ResponseEntity < ? > handleForgotPassword(@RequestBody ForgotPasswordRequest request){
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> handleForgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
             // Validate email format
-            if (request.getEmail()==null || ! request.getEmail().matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")){
-                return ResponseEntity.badRequest().body("Please enter a valid email address");
+            if (request.getEmail() == null || !request.getEmail().matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("message", "Please enter a valid email address", "type", "error")
+                );
             }
 
             // Check if user exists
-            Users user=usersRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Optional<Users> userOptional = usersRepository.findByEmail(request.getEmail());
 
-            // Generate and save token
-            String resetToken=jwtUtil.generatePasswordResetToken(user.getEmail());
+            // Always return the same message for security (prevent email enumeration)
+            if (userOptional.isEmpty()) {
+                log.info("Password reset requested for non-existent email: {}", request.getEmail());
+                return ResponseEntity.ok().body(
+                        Map.of("message", "If an account with that email exists, you'll receive a reset link", "type", "success")
+                );
+            }
+
+            Users user = userOptional.get();
+
+            // Generate unique token with timestamp to ensure uniqueness
+            String uniquePayload = user.getEmail() + ":" + System.currentTimeMillis();
+            String resetToken = jwtUtil.generatePasswordResetToken(uniquePayload);
+
+            // Update user with new token
             user.setPasswordResetTokenHash(jwtUtil.hashToken(resetToken));
             user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
             usersRepository.save(user);
 
-            // Log token for development
-            log.info("Reset token for {}: {}" , request.getEmail() , resetToken);
+            // TODO: Send email with reset token (remove logging in production)
+            log.info("Reset token generated for: {}", request.getEmail());
+            // emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
 
             return ResponseEntity.ok().body(
-                    "If an account with "+request.getEmail()+" exists, you'll receive a reset link"
+                    Map.of("message", "If an account with that email exists, you'll receive a reset link", "type", "success")
             );
-        } catch( RuntimeException e ){
-            return ResponseEntity.ok().body("If this email exists, a reset link was sent");
-        } catch( Exception e ){
-            return ResponseEntity.internalServerError().body("An error occurred");
+
+        } catch (Exception e) {
+            log.error("Error in forgot password for email: {}", request.getEmail(), e);
+            return ResponseEntity.internalServerError().body(
+                    Map.of("message", "An error occurred. Please try again.", "type", "error")
+            );
         }
     }
-
 
     @GetMapping ( "/profile" )
     public ResponseEntity < ? > getUserProfile(Authentication authentication){
