@@ -13,6 +13,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -113,8 +114,17 @@ public class JwtUtil {
         }
     }
 
-    public String hashToken( String token ) {
-        // Implement proper token hashing (e.g., using BCrypt)
+//    public String hashToken( String token ) {
+//        // Implement proper token hashing (e.g., using BCrypt)
+//        return BCrypt.hashpw(token, BCrypt.gensalt());
+//    }
+
+    public String hashToken(String token) {
+        // Ensure token is not longer than 72 bytes for BCrypt
+        byte[] tokenBytes = token.getBytes(StandardCharsets.UTF_8);
+        if (tokenBytes.length > 72) {
+            token = new String(tokenBytes, 0, 72, StandardCharsets.UTF_8);
+        }
         return BCrypt.hashpw(token, BCrypt.gensalt());
     }
 
