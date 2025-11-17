@@ -9,9 +9,7 @@ import com.JSR.PharmaFlow.DTO.*;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Exception.UnauthorizedAccessException;
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
-import com.JSR.PharmaFlow.Services.EmailService;
-import com.JSR.PharmaFlow.Services.RedisService;
-import com.JSR.PharmaFlow.Services.UsersService;
+import com.JSR.PharmaFlow.Services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,7 +29,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
-import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
 import com.JSR.PharmaFlow.Utils.JwtUtil;
 import java.util.concurrent.TimeUnit;
 import jakarta.validation.Valid;
@@ -63,6 +60,8 @@ public class AuthController{
     private RedisKeyCleanup redisKeyCleanup;
 
 
+    private final UserLoginService userLoginService;
+
 
     private final EmailService emailService;
     @Autowired
@@ -82,9 +81,10 @@ public class AuthController{
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public AuthController(EmailService emailService, AuthenticationManager authenticationManager , JwtUtil jwtUtil ,
+    public AuthController(UserLoginService userLoginService, EmailService emailService, AuthenticationManager authenticationManager , JwtUtil jwtUtil ,
                           CustomUserDetailsService userDetailsService , UsersRepository usersRepository ,
                           PasswordEncoder passwordEncoder){
+        this.userLoginService = userLoginService;
         this.emailService = emailService;
 
         this.authenticationManager=authenticationManager;
@@ -115,37 +115,86 @@ public class AuthController{
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping ( "/signin" )
-    public ResponseEntity < ? > authenticateUser(@Valid @RequestBody LoginRequest loginRequest){
+//    @PostMapping ( "/signin" )
+//    public ResponseEntity < ? > authenticateUser(@Valid @RequestBody LoginRequest loginRequest){
+//        try {
+//            Authentication authentication=authenticationManager.authenticate(
+//                    new UsernamePasswordAuthenticationToken(
+//                            loginRequest.getEmail() ,
+//                            loginRequest.getPassword()));
+//
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+//            UserDetails userDetails=( UserDetails ) authentication.getPrincipal();
+//
+//
+//            String jwt=jwtUtil.generateToken(userDetails.getUsername().trim());
+//
+//            log.info("the jwt token generated from backend -> "+jwt);
+//
+//            return ResponseEntity.ok(new Response.JwtResponse(
+//                    jwt ,
+//                    userDetails.getUsername() ,
+//                    userDetails.getAuthorities()));
+//
+//
+//        } catch( BadCredentialsException e ){
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                    .body(Map.of("error" , "Invalid email or password"));
+//        } catch( Exception e ){
+//            log.error("Authentication error" , e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("error" , "Authentication failed"));
+//        }
+//    }
+
+
+
+    @PostMapping("/signin")
+    public ResponseEntity<?>authenticateUser( @Valid @RequestBody LoginRequest loginRequest) {
+
         try {
-            Authentication authentication=authenticationManager.authenticate(
+            Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail() ,
-                            loginRequest.getPassword()));
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            UserDetails userDetails=( UserDetails ) authentication.getPrincipal();
+           SecurityContextHolder.getContext().setAuthentication(authentication);
 
+           UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            String jwt=jwtUtil.generateToken(userDetails.getUsername().trim());
+           String jwt = jwtUtil.generateToken(userDetails.getUsername().trim());
+            log.info("the jwt token generated from backend -> " + jwt);
 
-            log.info("the jwt token generated from backend -> "+jwt);
+            if (userLoginService.isFirstLogin(loginRequest.getEmail())){
+                try {
+
+                    userLoginService.sendWelcomeEmail(loginRequest.getEmail(),userDetails.getUsername());
+                    log.info("Welcome email sent for first-time user: {}", loginRequest.getEmail());
+
+                    userLoginService.markAsLoggedIn(loginRequest.getEmail());
+
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
 
             return ResponseEntity.ok(new Response.JwtResponse(
-                    jwt ,
-                    userDetails.getUsername() ,
+                    jwt,
+                    userDetails.getUsername(),
                     userDetails.getAuthorities()));
 
-
-        } catch( BadCredentialsException e ){
+        } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error" , "Invalid email or password"));
-        } catch( Exception e ){
-            log.error("Authentication error" , e);
+                    .body(Map.of("error", "Invalid email or password"));
+        }catch (Exception e){
+            log.error("Authentication error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error" , "Authentication failed"));
+                    .body(Map.of("error", "Authentication failed"));
         }
     }
+
 
     @PostMapping ( "/signup" )
     public ResponseEntity < ? > registerUser(@Valid @RequestBody SignUpRequest signUpRequest){
@@ -609,7 +658,5 @@ public class AuthController{
         dto.setAuthProvider(user.getAuthProvider());
         return dto;
     }
-
-
 }
 

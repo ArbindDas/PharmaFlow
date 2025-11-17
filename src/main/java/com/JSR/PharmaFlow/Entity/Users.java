@@ -84,6 +84,10 @@ public class Users {
     @Column(name = "password_reset_token_expiry")
     private LocalDateTime passwordResetTokenExpiry;
 
+
+    @Column(name = "has_logged_in", nullable = false)
+    private boolean hasLoggedIn = false;
+
     @OneToMany (mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("user-orders")
     private List < Orders > ordersList = new ArrayList <> ( );
