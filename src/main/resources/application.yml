@@ -103,4 +103,4 @@ stripe:
 brevo:
   sms:
     api:
-      key: ${BREVO_SMS_API_KEY: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}
+      key: ${BREVO_SMS_API_KEY}
