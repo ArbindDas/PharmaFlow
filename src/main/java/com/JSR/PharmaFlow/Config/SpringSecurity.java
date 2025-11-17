@@ -76,6 +76,7 @@ public class SpringSecurity {
                                 "/check/**",
                                 "/api/ollama/**",
                                 "/api/public/med/**",
+                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
                                 "/api/payment/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -112,7 +113,9 @@ public class SpringSecurity {
                                 "/api/health/**",
                                 "/api/orders/**" , // ADD THIS LINE to ignore CSRF for orders API
                                 "/api/payment/**",
-                                "/api/medicines/**"   // ✅ Add this line
+                                "/api/medicines/**", // ✅ Add this line
+                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
+                                "/api/reset/**"
                         )
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

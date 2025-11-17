@@ -65,7 +65,7 @@ public class JwtUtil {
     }
 
 
-    private Boolean isTokenExpired( String token ) {
+    public Boolean isTokenExpired(String token) {
         return extractExpiration( token ).before( new Date() );
     }
 
@@ -160,6 +160,11 @@ public class JwtUtil {
     }
 
 
+    public String extractPasswordResetEmail(String token) {
+    }
+
+    public boolean verifyTokenHash(String token, String storedTokenHash) {
+    }
 }
 
 
