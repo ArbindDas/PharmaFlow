@@ -1,0 +1,74 @@
+[33mcb539da[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m fix: remove hardcoded secrets and use environment variables
+[33m65e7c68[m Done
+[33m122a0e9[m Done
+[33mdd6145c[m Done
+[33md3bd92f[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m DOne
+[33m5401681[m Done
+[33me90e817[m Medicines api solved
+[33m70cbddc[m Done
+[33m4ffd24a[m Oauth Done
+[33mb527b38[m Done
+[33m1569424[m Done
+[33mb0e05cf[m Done
+[33mded1038[m Done
+[33m8e61c75[m Done
+[33mbb482a7[m Done
+[33md8db340[m done
+[33mc1a6c3d[m Done
+[33m91773e6[m AI Assistant Work Done
+[33m90d9ebf[m Done
+[33mcf5a77a[m Done
+[33mcd26af1[m Done
+[33m8ce7f33[m Done
+[33m6a560a7[m Done
+[33md3b4476[m Done
+[33m39eff04[m Redis Problem level 1 fixed
+[33m81e9b68[m Done
+[33mb70993c[m Done
+[33m392cc77[m Done
+[33m2ccc41e[m Done
+[33m82e4d45[m Done
+[33m025ab56[m Done
+[33m7952b1a[m Done
+[33m28e2177[m Done
+[33mace5950[m Done
+[33m2d26dc0[m Done
+[33mb3fb4eb[m Done
+[33m483a3c1[m JWT authentication completed
+[33m7e0f4f8[m JWT authentication completed
+[33m9a48f60[m Done
+[33m694be35[m Done
+[33m1e08c35[m Done
+[33m838918c[m Done
+[33m2dc2e31[m Done
+[33m9486288[m Done
+[33m022d7fd[m Done
+[33m61d947d[m Update README.md
+[33m9c5551a[m Update README.md
+[33m58cd6f9[m Done
+[33m166ead2[m Done
+[33m0f7b746[m Done
+[33ma33d5e7[m Update README.md
+[33m4b980bf[m Done
+[33m35f6776[m Done
+[33m8994d55[m Remove .env from Git tracking
+[33m898f255[m Done With redis in userController
+[33m69cadaa[m Add Docker Compose and application.properties
+[33m312d7bd[m Done finally redis Configuration Complete with Users
+[33m3a9fa2a[m first phase complete for UsersController
+[33m8c1daa0[m Done
+[33m1a4c362[m Done
+[33m2166560[m done
+[33m01271e8[m Done
+[33m437987c[m done
+[33me93742c[m dine
+[33mdec6ab6[m changes are dinr
+[33m8dc40c7[m Remove src/test directory from repository
+[33m77a3a56[m Add application.properties and docker-compose.yml to .gitignore
+[33m8b92250[m Remove application.properties from repository
+[33m20ac2be[m Done
+[33m5732e59[m deom
+[33mbc7952e[m doem
+[33m463f104[m Merge branch 'main' of https://github.com/ArbindDas/online-pharmacy-management
+[33m83b3994[m Fix line endings
+[33m1844eb4[m Initial commit
