@@ -9,6 +9,7 @@ import com.JSR.PharmaFlow.DTO.*;
 import com.JSR.PharmaFlow.Enums.OAuthProvider;
 import com.JSR.PharmaFlow.Exception.UnauthorizedAccessException;
 import com.JSR.PharmaFlow.Exception.UserNotFoundException;
+import com.JSR.PharmaFlow.Services.EmailService;
 import com.JSR.PharmaFlow.Services.RedisService;
 import com.JSR.PharmaFlow.Services.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +62,11 @@ public class AuthController{
     @Autowired
     private RedisKeyCleanup redisKeyCleanup;
 
+
+
+    private final EmailService emailService;
     @Autowired
+
     @Qualifier ( "mapRedisTemplate" )
     private RedisTemplate < String, Object > usersRedisTemplate;
 
@@ -77,9 +82,10 @@ public class AuthController{
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager , JwtUtil jwtUtil ,
+    public AuthController(EmailService emailService, AuthenticationManager authenticationManager , JwtUtil jwtUtil ,
                           CustomUserDetailsService userDetailsService , UsersRepository usersRepository ,
                           PasswordEncoder passwordEncoder){
+        this.emailService = emailService;
 
         this.authenticationManager=authenticationManager;
         this.jwtUtil=jwtUtil;
@@ -188,8 +194,14 @@ public class AuthController{
     }
 
 
+
+
+
+
+
+
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> handleForgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
             // Validate email format
             if (request.getEmail() == null || !request.getEmail().matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
@@ -222,7 +234,7 @@ public class AuthController{
 
             // TODO: Send email with reset token (remove logging in production)
             log.info("Reset token generated for: {}", request.getEmail());
-            // emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+             emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
 
             return ResponseEntity.ok().body(
                     Map.of("message", "If an account with that email exists, you'll receive a reset link", "type", "success")
@@ -235,6 +247,8 @@ public class AuthController{
             );
         }
     }
+
+
 
     @GetMapping ( "/profile" )
     public ResponseEntity < ? > getUserProfile(Authentication authentication){
@@ -306,42 +320,6 @@ public class AuthController{
         return ResponseEntity.ok(profile);
     }
 
-
-//    @GetMapping ( "/get-all-users" )
-//    public ResponseEntity < ? > getAllUsers(){
-//        try {
-//            Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-//            String authenticatedUser=authentication.getName();
-//
-//            log.info("Authenticated user {} is attempting to fetch all users" , authenticatedUser);
-//
-//            String redisKey="all_users";
-//
-//
-//            Object cached=usersRedisTemplate.opsForValue().get(redisKey);
-//            if (cached instanceof List < ? > cachedList){
-//                log.info("Returning {} users from cache" , cachedList.size());
-//                return ResponseEntity.ok(cachedList);
-//            }
-//
-//
-//            log.info("Cache miss - querying database");
-//            List < ? > users=usersService.getAllUsers();
-//            if (! users.isEmpty()){
-//                log.info("Fetched {} users from DB" , users.size());
-//
-//                usersRedisTemplate.opsForValue().set(redisKey , users , 2 , TimeUnit.MINUTES);
-//                log.info("Cached {} users with key {}" , users.size() , redisKey);
-//                return ResponseEntity.ok(Map.of("status" , "success" , "data" , users));
-//
-//            } else{
-//                return new ResponseEntity <>(HttpStatus.NOT_FOUND);
-//            }
-//        } catch( Exception e ){
-//            log.error("Error fetching users: {}" , e.getMessage() , e);
-//            return new ResponseEntity <>("Failed to fetch users. Please try again later." , HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
 
     @GetMapping("/get-all-users")
     public ResponseEntity<?> getAllUsers() {

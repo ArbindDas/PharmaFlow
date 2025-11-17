@@ -5,6 +5,7 @@ import com.JSR.PharmaFlow.Entity.Users;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
 import com.JSR.PharmaFlow.Utils.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -22,225 +23,216 @@ import java.util.Optional;
 @Slf4j
 public class PasswordResetController {
 
+    private static final String INVALID_TOKEN_MESSAGE = "Invalid or expired reset token";
+    private static final String SUCCESS_MESSAGE = "Password reset successfully";
+
     private final UsersRepository usersRepository;
     private final JwtUtil jwtUtil;
-
-
     private final PasswordEncoder passwordEncoder;
-    public PasswordResetController(UsersRepository usersRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+
+    public PasswordResetController(UsersRepository usersRepository,
+                                   JwtUtil jwtUtil,
+                                   PasswordEncoder passwordEncoder) {
         this.usersRepository = usersRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
 
-    @GetMapping("/reset-password")
-    public ResponseEntity<?> validateResetToken(@RequestParam String token) {
+    // ✅ ADD THIS ENDPOINT - For generating and storing reset tokens
+    @PostMapping("/generate-reset-token")
+    public ResponseEntity<Map<String, String>> generateResetToken(@RequestParam String email) {
         try {
-            log.info("=== TOKEN VALIDATION STARTED ===");
-            log.info("Received token: {}", token);
+            log.info("Generating reset token for: {}", email);
 
-            // Step 1: Validate JWT token structure
-            log.info("Step 1: Validating JWT token structure");
-            boolean isTokenValid = jwtUtil.validatePasswordResetToken(token);
-            log.info("JWT token validation result: {}", isTokenValid);
-
-            if (!isTokenValid) {
-                log.error("JWT token validation failed");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid or expired reset token", "type", "error")
-                );
-            }
-
-            // Step 2: Extract email from token
-            log.info("Step 2: Extracting email from token");
-            String email = jwtUtil.extractPasswordResetEmail(token);
-            log.info("Extracted email: {}", email);
-
-            if (email == null) {
-                log.error("Could not extract email from token");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid reset token", "type", "error")
-                );
-            }
-
-            // Step 3: Find user in database
-            log.info("Step 3: Finding user in database");
+            // Find user
             Optional<Users> userOptional = usersRepository.findByEmail(email);
             if (userOptional.isEmpty()) {
-                log.error("User not found for email: {}", email);
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "User not found", "type", "error")
-                );
+                return buildErrorResponse("User not found");
             }
 
             Users user = userOptional.get();
-            log.info("User found: {}", user.getEmail());
 
-            // Step 4: Check stored token hash
-            log.info("Step 4: Checking stored token hash");
-            String storedTokenHash = user.getPasswordResetTokenHash();
-            log.info("Stored token hash: {}", storedTokenHash);
+            // Generate token and hash
+            String token = jwtUtil.generatePasswordResetToken(email);
+            String tokenHash = jwtUtil.hashToken(token);
 
-            if (storedTokenHash == null) {
-                log.error("No token hash stored for user");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid reset token", "type", "error")
-                );
-            }
+            // Store in database
+            user.setPasswordResetTokenHash(tokenHash);
+            user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
+            usersRepository.save(user);
 
-            // Step 5: Verify token hash matches
-            log.info("Step 5: Verifying token hash matches");
-            boolean hashMatches = jwtUtil.verifyTokenHash(token, storedTokenHash);
-            log.info("Token hash verification result: {}", hashMatches);
+            log.info("Reset token generated and stored for: {}", email);
 
-            if (!hashMatches) {
-                log.error("Token hash verification failed");
-                log.info("Input token: {}", token);
-                log.info("Stored hash: {}", storedTokenHash);
-                log.info("Computed hash: {}", jwtUtil.hashToken(token));
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid reset token", "type", "error")
-                );
-            }
-
-            // Step 6: Check token expiry
-            log.info("Step 6: Checking token expiry");
-            LocalDateTime expiry = user.getPasswordResetTokenExpiry();
-            LocalDateTime now = LocalDateTime.now();
-            log.info("Token expiry: {}", expiry);
-            log.info("Current time: {}", now);
-            log.info("Is token expired: {}", expiry.isBefore(now));
-
-            if (expiry.isBefore(now)) {
-                log.error("Token has expired");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Reset token has expired", "type", "error")
-                );
-            }
-
-            log.info("=== TOKEN VALIDATION SUCCESSFUL ===");
-            return ResponseEntity.ok().body(
-                    Map.of("message", "Token is valid", "type", "success", "token", token)
-            );
+            return ResponseEntity.ok().body(Map.of(
+                    "token", token,
+                    "message", "Reset token generated successfully",
+                    "type", "success"
+            ));
 
         } catch (Exception e) {
-            log.error("=== TOKEN VALIDATION EXCEPTION ===");
-            log.error("Exception during token validation: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(
-                    Map.of("message", "Invalid or expired reset token", "type", "error")
-            );
+            log.error("Error generating reset token: {}", e.getMessage());
+            return buildErrorResponse("Error generating reset token");
         }
     }
 
+    @GetMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> validateResetToken(@RequestParam String token) {
+        log.info("Validating reset token, length: {}", token.length());
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         try {
-            log.info("=== PASSWORD RESET REQUEST STARTED ===");
-            log.info("Request token: {}", request.getToken());
-            log.info("New password length: {}", request.getNewPassword().length());
-
-            // Step 1: Validate token
-            log.info("Step 1: Validating JWT token");
-            boolean isTokenValid = jwtUtil.validatePasswordResetToken(request.getToken());
-            log.info("JWT token validation result: {}", isTokenValid);
-
-            if (!isTokenValid) {
-                log.error("JWT token validation failed");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid or expired reset token", "type", "error")
-                );
+            // Step 1: Validate JWT token structure and signature
+            if (!jwtUtil.validatePasswordResetTokenStructure(token)) {
+                log.warn("Invalid JWT token structure");
+                return buildErrorResponse(INVALID_TOKEN_MESSAGE);
             }
 
             // Step 2: Extract email from token
-            log.info("Step 2: Extracting email from token");
-            String email = jwtUtil.extractPasswordResetEmail(request.getToken());
-            log.info("Extracted email: {}", email);
-
-            if (email == null) {
-                log.error("Could not extract email from token");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid token format", "type", "error")
-                );
+            String email = jwtUtil.extractPasswordResetEmail(token);
+            if (email == null || email.trim().isEmpty()) {
+                log.warn("Could not extract email from token");
+                return buildErrorResponse(INVALID_TOKEN_MESSAGE);
             }
 
             // Step 3: Find user by email
-            log.info("Step 3: Finding user in database");
             Optional<Users> userOptional = usersRepository.findByEmail(email);
             if (userOptional.isEmpty()) {
-                log.error("User not found for email: {}", email);
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "User not found", "type", "error")
-                );
+                log.warn("User not found for email: {}", email);
+                return buildErrorResponse("User not found");
             }
 
             Users user = userOptional.get();
-            log.info("User found: {}", user.getEmail());
 
-            // Step 4: Verify token hash matches
-            log.info("Step 4: Checking stored token hash");
-            String storedTokenHash = user.getPasswordResetTokenHash();
-            log.info("Stored token hash: {}", storedTokenHash);
-
-            if (storedTokenHash == null) {
-                log.error("No token hash stored for user");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid reset token", "type", "error")
-                );
+            // Step 4: Validate stored token hash using BCrypt
+            if (!validateStoredTokenHash(token, user)) {
+                return buildErrorResponse(INVALID_TOKEN_MESSAGE);
             }
 
-            // Step 5: Verify token hash
-            log.info("Step 5: Verifying token hash");
-            boolean hashMatches = jwtUtil.verifyTokenHash(request.getToken(), storedTokenHash);
-            log.info("Token hash verification result: {}", hashMatches);
-
-            if (!hashMatches) {
-                log.error("Token hash verification failed");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Invalid reset token", "type", "error")
-                );
+            // Step 5: Check token expiry from database
+            if (isTokenExpired(user)) {
+                return buildErrorResponse("Reset token has expired");
             }
 
-            // Step 6: Check token expiry
-            log.info("Step 6: Checking token expiry");
-            LocalDateTime expiry = user.getPasswordResetTokenExpiry();
-            LocalDateTime now = LocalDateTime.now();
-            log.info("Token expiry: {}", expiry);
-            log.info("Current time: {}", now);
-            log.info("Is token expired: {}", expiry.isBefore(now));
-
-            if (expiry.isBefore(now)) {
-                log.error("Token has expired");
-                return ResponseEntity.badRequest().body(
-                        Map.of("message", "Reset token has expired", "type", "error")
-                );
-            }
-
-            // Step 7: Update password
-            log.info("Step 7: Updating password");
-            String hashedPassword = passwordEncoder.encode(request.getNewPassword());
-            log.info("Password hashed successfully");
-
-            user.setPassword(hashedPassword);
-            user.setPasswordResetTokenHash(null);
-            user.setPasswordResetTokenExpiry(null);
-
-            usersRepository.save(user);
-            log.info("Password updated successfully for user: {}", email);
-
-            log.info("=== PASSWORD RESET SUCCESSFUL ===");
-            return ResponseEntity.ok().body(
-                    Map.of("message", "Password reset successfully", "type", "success")
-            );
+            log.info("Token validation successful for user: {}", email);
+            return buildSuccessResponse("Token is valid", email);
 
         } catch (Exception e) {
-            log.error("=== PASSWORD RESET EXCEPTION ===");
-            log.error("Exception during password reset: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(
-                    Map.of("message", "Error resetting password: " + e.getMessage(), "type", "error")
-            );
+            log.error("Token validation exception: {}", e.getMessage());
+            return buildErrorResponse(INVALID_TOKEN_MESSAGE);
         }
     }
 
-}
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        log.info("Processing password reset request");
 
+        try {
+            // Validate token first
+            ResponseEntity<Map<String, String>> validationResponse = validateResetToken(request.getToken());
+            if (validationResponse.getStatusCode() != HttpStatus.OK) {
+                return validationResponse;
+            }
+
+            // Extract email and find user
+            String email = jwtUtil.extractPasswordResetEmail(request.getToken());
+            Users user = usersRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Update password and clear reset token
+            updateUserPassword(user, request.getNewPassword());
+
+            log.info("Password reset successful for user: {}", email);
+            return buildSuccessResponse(SUCCESS_MESSAGE);
+
+        } catch (Exception e) {
+            log.error("Password reset exception: {}", e.getMessage());
+            return buildErrorResponse("Error resetting password");
+        }
+    }
+
+    /**
+     * Validates the stored token hash against the provided token using BCrypt
+     */
+    private boolean validateStoredTokenHash(String token, Users user) {
+        String storedTokenHash = user.getPasswordResetTokenHash();
+
+        if (storedTokenHash == null || storedTokenHash.trim().isEmpty()) {
+            log.warn("No token hash stored for user: {}", user.getEmail());
+            return false;
+        }
+
+        log.debug("Verifying token hash using BCrypt for user: {}", user.getEmail());
+        boolean isValid = jwtUtil.verifyTokenHash(token, storedTokenHash);
+
+        if (!isValid) {
+            log.warn("Token hash verification failed for user: {}", user.getEmail());
+        }
+
+        return isValid;
+    }
+
+    /**
+     * Checks if the token has expired based on database expiry timestamp
+     */
+    private boolean isTokenExpired(Users user) {
+        LocalDateTime expiry = user.getPasswordResetTokenExpiry();
+
+        if (expiry == null) {
+            log.warn("No expiry date stored for user: {}", user.getEmail());
+            return true;
+        }
+
+        boolean isExpired = expiry.isBefore(LocalDateTime.now());
+        if (isExpired) {
+            log.info("Token expired for user: {}, expiry: {}", user.getEmail(), expiry);
+        }
+
+        return isExpired;
+    }
+
+    /**
+     * Updates user password and clears reset token fields
+     */
+    private void updateUserPassword(Users user, String newPassword) {
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(hashedPassword);
+        user.setPasswordResetTokenHash(null);
+        user.setPasswordResetTokenExpiry(null);
+
+        usersRepository.save(user);
+        log.debug("Password updated and reset token cleared for user: {}", user.getEmail());
+    }
+
+    /**
+     * Builds a standardized error response
+     */
+    private ResponseEntity<Map<String, String>> buildErrorResponse(String message) {
+        return ResponseEntity.badRequest()
+                .body(Map.of(
+                        "message", message,
+                        "type", "error"
+                ));
+    }
+
+    /**
+     * Builds a standardized success response
+     */
+    private ResponseEntity<Map<String, String>> buildSuccessResponse(String message) {
+        return ResponseEntity.ok()
+                .body(Map.of(
+                        "message", message,
+                        "type", "success"
+                ));
+    }
+
+    /**
+     * Builds a success response with email
+     */
+    private ResponseEntity<Map<String, String>> buildSuccessResponse(String message, String email) {
+        return ResponseEntity.ok()
+                .body(Map.of(
+                        "message", message,
+                        "type", "success",
+                        "email", email
+                ));
+    }
+}
