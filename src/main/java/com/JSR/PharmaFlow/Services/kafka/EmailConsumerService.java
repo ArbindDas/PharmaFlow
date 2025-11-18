@@ -1,6 +1,7 @@
 package com.JSR.PharmaFlow.Services.kafka;
 
-import com.JSR.PharmaFlow.Services.EmailService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,32 +9,71 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+//
+//@Service
+//@Slf4j
+//public class EmailConsumerService {
+//
+//    private final EmailServiceTwo emailService; // Use EmailServiceTwo
+//
+//    @Autowired
+//    public EmailConsumerService(EmailServiceTwo emailService) { // Use EmailServiceTwo
+//        this.emailService = emailService;
+//    }
+//
+//    @KafkaListener(topics = "user-welcome-email", groupId = "email-service")
+//    public void consumeWelcomeEmail(Map<String, Object> welcomeEvent) {
+//        try {
+//            String email = (String) welcomeEvent.get("email");
+//            String username = (String) welcomeEvent.get("username");
+//
+//            if (email == null || username == null) {
+//                log.error("Invalid welcome event: missing email or username");
+//                return;
+//            }
+//
+//            // send welcome email
+//            emailService.sendWelcomeEmail(email, username);
+//            log.info("Welcome email sent successfully to: {}", email);
+//        } catch (RuntimeException | MessagingException e) {
+//            log.error("Failed to process welcome email for event: {}", welcomeEvent, e);
+//        }
+//    }
+//}
+
 
 @Service
 @Slf4j
 public class EmailConsumerService {
 
-    private EmailServiceTwo emailService;
+    private final EmailServiceTwo emailService;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public EmailConsumerService(EmailServiceTwo emailService) {
+    public EmailConsumerService(EmailServiceTwo emailService, ObjectMapper objectMapper) {
         this.emailService = emailService;
+        this.objectMapper = objectMapper;
     }
 
-
     @KafkaListener(topics = "user-welcome-email", groupId = "email-service")
-    public void consumeWelcomeEmail(Map<String , Object> welcomeEvent){
-
-
+    public void consumeWelcomeEmail(String welcomeEventJson) {
         try {
-            String email = (String) welcomeEvent.get("email");
-            String username = (String)  welcomeEvent.get("username");
+            // Parse JSON string to Map
+            Map<String, Object> welcomeEvent;
+            welcomeEvent = objectMapper.readValue(welcomeEventJson, new TypeReference<Map<String, Object>>() {});
 
-            // send welcome email
-            emailService.sendWelcomeEmail(email , username);
+            String email = (String) welcomeEvent.get("email");
+            String username = (String) welcomeEvent.get("username");
+
+            if (email == null || username == null) {
+                log.error("Invalid welcome event: missing email or username");
+                return;
+            }
+
+            emailService.sendWelcomeEmail(email, username);
             log.info("Welcome email sent successfully to: {}", email);
-        } catch (RuntimeException | MessagingException e) {
-            log.error("Failed to process welcome email for event: {}", welcomeEvent, e);
+        } catch (Exception e) {
+            log.error("Failed to process welcome email for event: {}", welcomeEventJson, e);
         }
     }
 }

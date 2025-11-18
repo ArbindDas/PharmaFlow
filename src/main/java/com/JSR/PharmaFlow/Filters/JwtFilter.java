@@ -191,6 +191,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 path.startsWith("/api/reset/") ||  // ALL reset endpoints
                 path.startsWith("/api/test/") ||   // ALL test endpoints
                 path.startsWith("/api/public/") ||
+                path.startsWith("api/auth/signin")||
                 path.startsWith("/api/medicines/getMedicines") ||
                 path.startsWith("/api/medicines/test") ||
                 path.startsWith("/api/medicines/add") ||

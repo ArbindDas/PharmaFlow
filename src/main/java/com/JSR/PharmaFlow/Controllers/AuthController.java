@@ -64,7 +64,6 @@ public class AuthController{
 
 
     private final EmailService emailService;
-    @Autowired
 
     @Qualifier ( "mapRedisTemplate" )
     private RedisTemplate < String, Object > usersRedisTemplate;
