@@ -52,6 +52,11 @@ public class UserLoginService {
         welcomeEvent.put("timestamp", Instant.now().toString());
 
 
+        // This is your PRODUCER
+        // I will send messages to topic "user-welcome-email"
+//        kafkaTemplate.send("TOPIC_NAME", KEY, MESSAGE);
+        // PUBLISH to Kafka topic
         kafkaTemplate.send("user-welcome-email", email , welcomeEvent);
+        // Message is now stored in Kafka!
     }
 }

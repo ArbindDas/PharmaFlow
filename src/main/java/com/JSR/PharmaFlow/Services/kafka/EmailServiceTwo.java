@@ -19,6 +19,9 @@ public class EmailServiceTwo {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+
+    // ACTUAL EMAIL SENDING HAPPENS HERE
+    // Creates and sends "Welcome to PharmFlow!" email
     public void sendWelcomeEmail(String toEmail , String username) throws MessagingException {
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -30,8 +33,6 @@ public class EmailServiceTwo {
 
         String emailContent = buildWelcomeEmail(username);
         helper.setText(emailContent , true); //  // true indicates HTML
-
-
 
         mailSender.send(message);
     }

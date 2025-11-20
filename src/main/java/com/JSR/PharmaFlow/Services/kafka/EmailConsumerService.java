@@ -23,11 +23,13 @@ public class EmailConsumerService {
         this.objectMapper = objectMapper;
     }
 
+    // This is your CONSUMER
     @KafkaListener(topics = "user-welcome-email", groupId = "email-service")
     public void consumeWelcomeEmail(String welcomeEventJson) {
         try {
             // Parse JSON string to Map
             Map<String, Object> welcomeEvent;
+            // AUTOMATICALLY CALLED when message arrives in "user-welcome-email" topic
             welcomeEvent = objectMapper.readValue(welcomeEventJson, new TypeReference<Map<String, Object>>() {});
 
             String email = (String) welcomeEvent.get("email");
