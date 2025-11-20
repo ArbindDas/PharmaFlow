@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/kafka")
 public class KafkaTest {
@@ -37,8 +39,9 @@ public class KafkaTest {
     }
 
     @GetMapping("/test")
-    public ResponseEntity<String> test() {
+    public ResponseEntity<Map<String , String>> test() {
         logger.info("Test endpoint accessed");
-        return ResponseEntity.ok("Jai Shree Ram, it's working....");
+        Map<String , String> response = Map.of("Message", "jai shree ram");
+        return ResponseEntity.ok(response);
     }
 }
