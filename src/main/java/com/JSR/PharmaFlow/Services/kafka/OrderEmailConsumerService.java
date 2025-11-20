@@ -2,56 +2,30 @@ package com.JSR.PharmaFlow.Services.kafka;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.mail.MessagingException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
 @Service
 @Slf4j
-public class EmailConsumerService {
+public class OrderEmailConsumerService {
 
     private final EmailServiceTwo emailService;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public EmailConsumerService(EmailServiceTwo emailService, ObjectMapper objectMapper) {
+    public OrderEmailConsumerService(EmailServiceTwo emailService, ObjectMapper objectMapper) {
         this.emailService = emailService;
         this.objectMapper = objectMapper;
     }
 
-    // This is your CONSUMER
-    @KafkaListener(topics = "user-welcome-email", groupId = "email-service")
-    public void consumeWelcomeEmail(String welcomeEventJson) {
-        try {
-            // Parse JSON string to Map
-            Map<String, Object> welcomeEvent;
-            // AUTOMATICALLY CALLED when message arrives in "user-welcome-email" topic
-            welcomeEvent = objectMapper.readValue(welcomeEventJson, new TypeReference<Map<String, Object>>() {});
-
-            String email = (String) welcomeEvent.get("email");
-            String username = (String) welcomeEvent.get("username");
-
-            if (email == null || username == null) {
-                log.error("Invalid welcome event: missing email or username");
-                return;
-            }
-
-            emailService.sendWelcomeEmail(email, username);
-            log.info("Welcome email sent successfully to: {}", email);
-        } catch (Exception e) {
-            log.error("Failed to process welcome email for event: {}", welcomeEventJson, e);
-        }
-    }
-
+    // Consumer for order confirmation emails
     @KafkaListener(topics = "order-confirmed-email", groupId = "order-email-service")
     public void consumeOrderConfirmation(String orderEventJson) {
         try {
-            log.info("🚨 KAFKA CONSUMER TRIGGERED - Received order confirmation message");
-
             Map<String, Object> orderEvent = objectMapper.readValue(orderEventJson,
                     new TypeReference<Map<String, Object>>() {});
 
@@ -59,20 +33,18 @@ public class EmailConsumerService {
             String userName = (String) orderEvent.get("userName");
             Long orderId = ((Number) orderEvent.get("orderId")).longValue();
 
-            log.info("📧 Sending order confirmation email to: {} for order ID: {}", email, orderId);
             emailService.sendOrderConfirmationEmail(email, userName, orderId);
-            log.info("✅ Order confirmation email sent successfully to: {}", email);
+            log.info("Order confirmation email sent to: {} for order ID: {}", email, orderId);
 
         } catch (Exception e) {
-            log.error("❌ Failed to process order confirmation: {}", orderEventJson, e);
+            log.error("Failed to process order confirmation: {}", orderEventJson, e);
         }
     }
 
+    // Consumer for status update emails
     @KafkaListener(topics = "order-status-update-email", groupId = "order-email-service")
     public void consumeStatusUpdate(String statusEventJson) {
         try {
-            log.info("🚨 KAFKA CONSUMER TRIGGERED - Received status update message");
-
             Map<String, Object> statusEvent = objectMapper.readValue(statusEventJson,
                     new TypeReference<Map<String, Object>>() {});
 
@@ -82,21 +54,19 @@ public class EmailConsumerService {
             String newStatus = (String) statusEvent.get("newStatus");
             String oldStatus = (String) statusEvent.get("oldStatus");
 
-            log.info("📧 Sending status update email to: {} for order ID: {} - {} -> {}",
-                    email, orderId, oldStatus, newStatus);
             emailService.sendOrderStatusUpdateEmail(email, userName, orderId, oldStatus, newStatus);
-            log.info("✅ Status update email sent successfully to: {}", email);
+            log.info("Status update email sent to: {} for order ID: {} - {} -> {}",
+                    email, orderId, oldStatus, newStatus);
 
         } catch (Exception e) {
-            log.error("❌ Failed to process status update: {}", statusEventJson, e);
+            log.error("Failed to process status update: {}", statusEventJson, e);
         }
     }
 
+    // Consumer for delivery confirmation emails
     @KafkaListener(topics = "order-delivered-email", groupId = "order-email-service")
     public void consumeDeliveryConfirmation(String deliveryEventJson) {
         try {
-            log.info("🚨 KAFKA CONSUMER TRIGGERED - Received delivery confirmation message");
-
             Map<String, Object> deliveryEvent = objectMapper.readValue(deliveryEventJson,
                     new TypeReference<Map<String, Object>>() {});
 
@@ -104,15 +74,11 @@ public class EmailConsumerService {
             String userName = (String) deliveryEvent.get("userName");
             Long orderId = ((Number) deliveryEvent.get("orderId")).longValue();
 
-            log.info("📧 Sending delivery confirmation email to: {} for order ID: {}", email, orderId);
             emailService.sendOrderDeliveredEmail(email, userName, orderId);
-            log.info("✅ Delivery confirmation email sent successfully to: {}", email);
+            log.info("Delivery confirmation email sent to: {} for order ID: {}", email, orderId);
 
         } catch (Exception e) {
-            log.error("❌ Failed to process delivery confirmation: {}", deliveryEventJson, e);
+            log.error("Failed to process delivery confirmation: {}", deliveryEventJson, e);
         }
     }
-
-
-
 }

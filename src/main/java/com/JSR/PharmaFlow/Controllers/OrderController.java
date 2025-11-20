@@ -9,6 +9,7 @@ import com.JSR.PharmaFlow.Repository.MedicinesRepository;
 import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
 import com.JSR.PharmaFlow.Repository.OrdersRepository;
 import com.JSR.PharmaFlow.Repository.UsersRepository;
+import com.JSR.PharmaFlow.Services.kafka.OrderNotificationService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +46,12 @@ public class OrderController {
 
     @Autowired
     private MedicinesRepository medicinesRepository;
+
+
+
+    @Autowired
+    private OrderNotificationService orderNotificationService; // ADD THIS
+
 
     // GET endpoint to fetch all orders for admin view
     @GetMapping(value = "/admin" , produces = MediaType.APPLICATION_JSON_VALUE)
@@ -102,8 +108,19 @@ public class OrderController {
             Orders order = ordersRepository.findById(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
+            String oldStatus = order.getStatus().name(); // Store old status
             order.setStatus(Status.valueOf(newStatus));
-            ordersRepository.save(order);
+//            ordersRepository.save(order);
+            Orders updatedOrder = ordersRepository.save(order);
+
+            // ✅ SEND STATUS UPDATE NOTIFICATION
+            orderNotificationService.sendStatusUpdate(orderId, order.getUsers().getEmail(), oldStatus, newStatus);
+
+            // ✅ SEND DELIVERY CONFIRMATION IF STATUS IS DELIVERED
+            if ("DELIVERED".equals(newStatus)) {
+                orderNotificationService.sendDeliveryConfirmation(orderId, order.getUsers().getEmail());
+            }
+
 
             return ResponseEntity.ok(Map.of("message", "Order status updated successfully"));
 
@@ -115,96 +132,6 @@ public class OrderController {
                     .body(Map.of("error", "Failed to update order status", "message", e.getMessage()));
         }
     }
-
-//    @Transactional
-//    @PostMapping
-//    public ResponseEntity < ? > createOrder(@RequestBody OrderRequest orderRequest) {
-//        try {
-//            // Get authenticated user
-//            Users user=usersRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-//                    .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//            // Create and save order
-//            Orders order=new Orders();
-//            order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
-//            order.setStatus(Status.PENDING);
-//            order.setUsers(user);
-//            Orders savedOrder=ordersRepository.save(order);
-//
-//            // Create and save order items
-//            List < OrderItems > orderItems=new ArrayList <>();
-//            for(OrderRequest.OrderItemDto item : orderRequest.getOrderItems()){
-//                Medicines medicine=medicinesRepository.findById(item.getMedicineId())
-//                        .orElseThrow(() -> new RuntimeException("Medicine with ID "+item.getMedicineId()+" not found"));
-//
-//                OrderItems orderItem=new OrderItems();
-//                orderItem.setQuantity(Integer.valueOf(item.getQuantity()));
-//                orderItem.setUnitPrice(BigDecimal.valueOf(item.getUnitPrice()));
-//                orderItem.setOrders(savedOrder);
-//                orderItem.setMedicine(medicine);
-//
-//                orderItems.add(orderItem);
-//            }
-//
-//            orderItemsRepository.saveAll(orderItems);
-//            return ResponseEntity.ok(savedOrder);
-//        } catch( Exception e ){
-//            e.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Error creating order: "+e.getMessage());
-//        }
-//    }
-
-
-//    @Transactional
-//    @PostMapping
-//    public ResponseEntity<?> createOrder(@RequestBody OrderRequest orderRequest) {
-//        try {
-//            log.info("Creating order with payment method: {}", orderRequest.getPaymentMethod());
-//
-//            // Get authenticated user
-//            Users user = usersRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-//                    .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//            // Create and save order
-//            Orders order = new Orders();
-//            order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
-//            order.setStatus(Status.PENDING);
-//            order.setUsers(user);
-//
-//            // Set payment method if your Orders entity has this field
-//            // order.setPaymentMethod(orderRequest.getPaymentMethod());
-//
-//            Orders savedOrder = ordersRepository.save(order);
-//
-//            // Create and save order items
-//            List<OrderItems> orderItems = new ArrayList<>();
-//            for (OrderRequest.OrderItemDto item : orderRequest.getOrderItems()) {
-//                Medicines medicine = medicinesRepository.findById(item.getMedicineId())
-//                        .orElseThrow(() -> new RuntimeException("Medicine with ID " + item.getMedicineId() + " not found"));
-//
-//                OrderItems orderItem = new OrderItems();
-//                orderItem.setQuantity(Integer.valueOf(item.getQuantity()));
-//                orderItem.setUnitPrice(BigDecimal.valueOf(item.getUnitPrice()));
-//                orderItem.setOrders(savedOrder);
-//                orderItem.setMedicine(medicine);
-//
-//                orderItems.add(orderItem);
-//            }
-//
-//            orderItemsRepository.saveAll(orderItems);
-//
-//            log.info("Order created successfully with ID: {}", savedOrder.getId());
-//            return ResponseEntity.ok(savedOrder);
-//
-//        } catch (Exception e) {
-//            log.error("Error creating order: ", e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Error creating order: " + e.getMessage());
-//        }
-//    }
-
-
 
     @Transactional
     @PostMapping
@@ -271,6 +198,12 @@ public class OrderController {
             }
 
             orderItemsRepository.saveAll(orderItems);
+
+//            log.info("Order created successfully with ID: {}", savedOrder.getId());
+//            return ResponseEntity.ok(savedOrder);
+
+            // ✅ SEND ORDER CONFIRMATION NOTIFICATION
+            orderNotificationService.sendOrderConfirmation(savedOrder.getId(), user.getEmail());
 
             log.info("Order created successfully with ID: {}", savedOrder.getId());
             return ResponseEntity.ok(savedOrder);
