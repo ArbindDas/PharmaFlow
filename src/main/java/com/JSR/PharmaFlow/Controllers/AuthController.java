@@ -82,7 +82,9 @@ public class AuthController{
     @Autowired
     public AuthController(UserLoginService userLoginService, EmailService emailService, AuthenticationManager authenticationManager , JwtUtil jwtUtil ,
                           CustomUserDetailsService userDetailsService , UsersRepository usersRepository ,
-                          PasswordEncoder passwordEncoder){
+                          PasswordEncoder passwordEncoder,
+                          @Qualifier("mapRedisTemplate")RedisTemplate<String , Object>usersRedisTemplate
+                          ){
         this.userLoginService = userLoginService;
         this.emailService = emailService;
 
@@ -91,6 +93,8 @@ public class AuthController{
         this.userDetailsService=userDetailsService;
         this.usersRepository=usersRepository;
         this.passwordEncoder=passwordEncoder;
+        this.usersRedisTemplate = usersRedisTemplate;
+
 
 
     }

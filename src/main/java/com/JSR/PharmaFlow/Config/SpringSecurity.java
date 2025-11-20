@@ -78,7 +78,8 @@ public class SpringSecurity {
                                 "/api/public/med/**",
                                 "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
                                 "/api/test/**",
-                                "/api/payment/**"
+                                "/api/payment/**",
+                                "/api/kafka/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // ✅ Allow anyone to delete medicines
@@ -116,7 +117,8 @@ public class SpringSecurity {
                                 "/api/payment/**",
                                 "/api/medicines/**", // ✅ Add this line
                                 "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
-                                "/api/test/**"
+                                "/api/test/**",
+                                "/api/kafka/**"
                         )
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
