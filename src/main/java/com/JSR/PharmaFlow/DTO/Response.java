@@ -4,15 +4,6 @@ import org.springframework.security.core.GrantedAuthority;
 import java.util.Collection;  // Add this import
 import java.util.List;
 import java.util.stream.Collectors;
-//public class Response {
-//
-//    public record JwtResponse(String token, String username, Collection<? extends GrantedAuthority> authorities) {
-//    }
-//
-//    public record ApiResponse(boolean success, String message) {
-//    }
-//
-//}
 
 
 public class Response {

@@ -14,9 +14,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -77,10 +75,18 @@ public class JwtUtil {
         }
     }
 
-    public String generateToken(String username) {
+
+    public String generateToken(String username, List<String> roles) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("roles", roles); // ✅ Add roles to claims
         return createToken(claims, username);
     }
+
+    // Update the existing generateToken method to use default empty roles
+    public String generateToken(String username) {
+        return generateToken(username, new ArrayList<>()); // Default empty roles
+    }
+
 
     private final long ONE_HOUR = 1000 * 60 * 60; // 1 hour
 
@@ -94,15 +100,6 @@ public class JwtUtil {
                 .compact();
     }
 
-//    public String generatePasswordResetToken(String email) {
-//        return Jwts.builder()
-//                .subject(email)
-//                .claim("type", "password_reset")
-//                .issuedAt(new Date())
-//                .expiration(new Date(System.currentTimeMillis() + PASSWORD_RESET_EXPIRATION))
-//                .signWith(getSigningKey())
-//                .compact();
-//    }
 
     public String generatePasswordResetToken(String email) {
         return Jwts.builder()
@@ -326,5 +323,23 @@ public class JwtUtil {
             log.error("Error extracting email from token: {}", e.getMessage());
             return null;
         }
+    }
+
+    // Add this method to extract roles from token
+    public List<String> extractRoles(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            @SuppressWarnings("unchecked")
+            List<String> roles = (List<String>) claims.get("roles");
+            return roles != null ? roles : new ArrayList<>();
+        } catch (Exception e) {
+            log.error("Error extracting roles from token: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // Add this method to get all claims for debugging
+    public Claims getClaims(String token) {
+        return extractAllClaims(token);
     }
 }

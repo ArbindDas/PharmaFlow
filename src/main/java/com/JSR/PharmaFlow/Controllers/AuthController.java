@@ -99,6 +99,39 @@ public class AuthController{
 
     }
 
+
+    @PostMapping("/test-generate-token")
+    public ResponseEntity<?> testGenerateToken(@RequestBody Map<String, Object> request) {
+        try {
+            String username = (String) request.get("username");
+            @SuppressWarnings("unchecked")
+            List<String> roles = (List<String>) request.get("roles");
+
+            log.info("🔐 Testing token generation for: {} with roles: {}", username, roles);
+
+            // Generate token with roles
+            String token = jwtUtil.generateToken(username, roles);
+
+            // Decode and show what's in the token
+            String[] parts = token.split("\\.");
+            String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+
+            log.info("🔐 Generated token payload: {}", payloadJson);
+
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "decoded_payload", payloadJson,
+                    "message", "Token generated successfully"
+            ));
+
+        } catch (Exception e) {
+            log.error("❌ Error in test endpoint: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
     @GetMapping ( "/roles" )
     public List < String > getAllRoles(){
         return Arrays.stream(Role.values())
@@ -118,44 +151,114 @@ public class AuthController{
         return ResponseEntity.ok().build();
     }
 
-//    @PostMapping ( "/signin" )
-//    public ResponseEntity < ? > authenticateUser(@Valid @RequestBody LoginRequest loginRequest){
+
+//    @PostMapping("/signin")
+//    public ResponseEntity<?>authenticateUser( @Valid @RequestBody LoginRequest loginRequest) {
+//
 //        try {
-//            Authentication authentication=authenticationManager.authenticate(
+//            Authentication authentication = authenticationManager.authenticate(
 //                    new UsernamePasswordAuthenticationToken(
-//                            loginRequest.getEmail() ,
-//                            loginRequest.getPassword()));
+//                            loginRequest.getEmail(),
+//                            loginRequest.getPassword()
+//                    )
+//            );
 //
-//            SecurityContextHolder.getContext().setAuthentication(authentication);
-//            UserDetails userDetails=( UserDetails ) authentication.getPrincipal();
+//           SecurityContextHolder.getContext().setAuthentication(authentication);
 //
+//           UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 //
-//            String jwt=jwtUtil.generateToken(userDetails.getUsername().trim());
+//           String jwt = jwtUtil.generateToken(userDetails.getUsername().trim());
+//            log.info("the jwt token generated from backend -> " + jwt);
 //
-//            log.info("the jwt token generated from backend -> "+jwt);
+//            if (userLoginService.isFirstLogin(loginRequest.getEmail())){
+//                try {
+//
+//                    userLoginService.sendWelcomeEmail(loginRequest.getEmail(),userDetails.getUsername());
+//                    log.info("Welcome email sent for first-time user: {}", loginRequest.getEmail());
+//
+//                    userLoginService.markAsLoggedIn(loginRequest.getEmail());
+//
+//                } catch (Exception e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
 //
 //            return ResponseEntity.ok(new Response.JwtResponse(
-//                    jwt ,
-//                    userDetails.getUsername() ,
+//                    jwt,
+//                    userDetails.getUsername(),
 //                    userDetails.getAuthorities()));
 //
-//
-//        } catch( BadCredentialsException e ){
+//        } catch (BadCredentialsException e) {
 //            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body(Map.of("error" , "Invalid email or password"));
-//        } catch( Exception e ){
-//            log.error("Authentication error" , e);
+//                    .body(Map.of("error", "Invalid email or password"));
+//        }catch (Exception e){
+//            log.error("Authentication error", e);
 //            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(Map.of("error" , "Authentication failed"));
+//                    .body(Map.of("error", "Authentication failed"));
 //        }
 //    }
+
+//    @PostMapping("/signin")
+//    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+//
+//        try {
+//            Authentication authentication = authenticationManager.authenticate(
+//                    new UsernamePasswordAuthenticationToken(
+//                            loginRequest.getEmail(),
+//                            loginRequest.getPassword()
+//                    )
+//            );
+//
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+//
+//            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+//
+//            // ✅ Get roles from UserDetails
+//            List<String> roles = userDetails.getAuthorities().stream()
+//                    .map(GrantedAuthority::getAuthority)
+//                    .collect(Collectors.toList());
+//
+//            // ✅ Generate token WITH roles
+//            String jwt = jwtUtil.generateToken(userDetails.getUsername().trim(), roles);
+//
+//            log.info("🔐 JWT token generated for user: {}", userDetails.getUsername());
+//            log.info("🔐 User roles: {}", roles);
+//            log.info("🔐 Token: {}", jwt);
+//
+//            if (userLoginService.isFirstLogin(loginRequest.getEmail())) {
+//                try {
+//                    userLoginService.sendWelcomeEmail(loginRequest.getEmail(), userDetails.getUsername());
+//                    log.info("Welcome email sent for first-time user: {}", loginRequest.getEmail());
+//                    userLoginService.markAsLoggedIn(loginRequest.getEmail());
+//                } catch (Exception e) {
+//                    log.error("Failed to send welcome email", e);
+//                }
+//            }
+//
+//            // ✅ Return roles in response too
+//            return ResponseEntity.ok(new Response.JwtResponse(
+//                    jwt,
+//                    userDetails.getUsername(),
+//                    userDetails.getAuthorities()));
+//
+//        } catch (BadCredentialsException e) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                    .body(Map.of("error", "Invalid email or password"));
+//        } catch (Exception e) {
+//            log.error("Authentication error", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("error", "Authentication failed"));
+//        }
+//    }
+//
 
 
 
     @PostMapping("/signin")
-    public ResponseEntity<?>authenticateUser( @Valid @RequestBody LoginRequest loginRequest) {
-
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {
+            log.info("🔐 Signin attempt for email: {}", loginRequest.getEmail());
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getEmail(),
@@ -163,41 +266,62 @@ public class AuthController{
                     )
             );
 
-           SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-           UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-           String jwt = jwtUtil.generateToken(userDetails.getUsername().trim());
-            log.info("the jwt token generated from backend -> " + jwt);
+            // Log authorities
+            log.info("🔐 Authorities from authentication:");
+            userDetails.getAuthorities().forEach(auth ->
+                    log.info("   - {}", auth.getAuthority())
+            );
 
-            if (userLoginService.isFirstLogin(loginRequest.getEmail())){
+            // Extract roles
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .map(auth -> auth.replace("ROLE_", "")) // Remove ROLE_ prefix
+                    .collect(Collectors.toList());
+
+            log.info("🔐 Extracted roles for JWT: {}", roles);
+
+            // Generate token WITH roles
+            String jwt = jwtUtil.generateToken(userDetails.getUsername().trim(), roles);
+
+            log.info("🔐 JWT generated (first 50 chars): {}...",
+                    jwt.substring(0, Math.min(50, jwt.length())));
+
+            // First login logic
+            if (userLoginService.isFirstLogin(loginRequest.getEmail())) {
                 try {
-
-                    userLoginService.sendWelcomeEmail(loginRequest.getEmail(),userDetails.getUsername());
-                    log.info("Welcome email sent for first-time user: {}", loginRequest.getEmail());
-
+                    userLoginService.sendWelcomeEmail(loginRequest.getEmail(), userDetails.getUsername());
                     userLoginService.markAsLoggedIn(loginRequest.getEmail());
-
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    log.error("Welcome email failed", e);
                 }
             }
+
+            // Create response
+            List<String> responseRoles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
+
+            log.info("🔐 Returning response with roles: {}", responseRoles);
 
             return ResponseEntity.ok(new Response.JwtResponse(
                     jwt,
                     userDetails.getUsername(),
-                    userDetails.getAuthorities()));
+                    responseRoles));
 
         } catch (BadCredentialsException e) {
+            log.error("❌ Bad credentials for email: {}", loginRequest.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid email or password"));
-        }catch (Exception e){
-            log.error("Authentication error", e);
+        } catch (Exception e) {
+            log.error("❌ Authentication error for email: {}", loginRequest.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Authentication failed"));
+                    .body(Map.of("error", "Authentication failed: " + e.getMessage()));
         }
     }
-
 
     @PostMapping ( "/signup" )
     public ResponseEntity < ? > registerUser(@Valid @RequestBody SignUpRequest signUpRequest){

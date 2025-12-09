@@ -1,4 +1,5 @@
 package com.JSR.PharmaFlow.Config;
+
 import com.JSR.PharmaFlow.Filters.JwtFilter;
 import com.JSR.PharmaFlow.Services.CustomOAuth2UserService;
 import com.JSR.PharmaFlow.Services.CustomUserDetailsService;
@@ -12,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -20,6 +22,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,11 +40,11 @@ public class SpringSecurity {
     private final OAuth2FailureHandler oAuth2FailureHandler;
 
     @Autowired
-    public SpringSecurity( JwtFilter jwtFilter , CustomUserDetailsService userDetailsService ,
-                           OAuth2SuccessHandler oAuth2LoginSuccessHandler ,
-                            OAuth2SuccessHandler oAuth2SuccessHandler ,
-                           CustomOAuth2UserService customOAuth2UserService ,
-                           JwtAuthEntryPoint authEntryPoint , OAuth2FailureHandler oAuth2FailureHandler ) {
+    public SpringSecurity( JwtFilter jwtFilter, CustomUserDetailsService userDetailsService,
+                           OAuth2SuccessHandler oAuth2LoginSuccessHandler,
+                           OAuth2SuccessHandler oAuth2SuccessHandler,
+                           CustomOAuth2UserService customOAuth2UserService,
+                           JwtAuthEntryPoint authEntryPoint, OAuth2FailureHandler oAuth2FailureHandler ) {
         this.jwtFilter = jwtFilter;
         this.userDetailsService = userDetailsService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
@@ -50,15 +53,92 @@ public class SpringSecurity {
         this.oAuth2FailureHandler = oAuth2FailureHandler;
     }
 
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+//                .exceptionHandling(exception -> exception
+//                        .authenticationEntryPoint(authEntryPoint)
+//                )
+//                .sessionManagement(session -> session
+//                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+//                )
+//                .authorizeHttpRequests(auth -> auth
+//                        // Public endpoints - should come FIRST
+//                        .requestMatchers(
+//                                "/api/medicines/getMedicines",
+//                                "/api/medicines/test",
+//                                "/api/medicines/add",
+//                                "/login/oauth2/**",
+//                                "/oauth2/**",
+//                                "/api/auth/**",
+//                                "/api/public/**",
+//                                "/api/health/**",
+//                                "/api/auth/forgot-password",
+//                                "/api/files/**",
+//                                "/check/**",
+//                                "/api/ollama/**",
+//                                "/api/public/med/**",
+//                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
+//                                "/api/test/**",
+//                                "/api/payment/**",
+//                                "/api/kafka/**"
+//                        ).permitAll()
+//                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+//                        // ✅ Allow anyone to delete medicines
+
+    /// /                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/**").permitAll()
+//
+//
+//                        // Role-based and authenticated endpoints
+//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/api/orders/**").authenticated()
+//
+//
+//
+//                        // Any other request - should ALWAYS come LAST
+//                        .anyRequest().authenticated()
+//
+//
+//                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        .userInfoEndpoint(userInfo -> userInfo
+//                                .userService(customOAuth2UserService)
+//                        )
+//                        .defaultSuccessUrl("http://localhost:3000/oauth-success", true)
+//                        .successHandler(oAuth2SuccessHandler)
+//                        .failureHandler(oAuth2FailureHandler)
+//                )
+//                .csrf(csrf -> csrf
+//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+//                        .ignoringRequestMatchers(
+//                                "/oauth2/**",
+//                                "/login/**",
+//                                "/api/auth/**",
+//                                "/api/public/**",
+//                                "/api/health/**",
+//                                "/api/orders/**" , // ADD THIS LINE to ignore CSRF for orders API
+//                                "/api/payment/**",
+//                                "/api/medicines/**", // ✅ Add this line
+//                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
+//                                "/api/test/**",
+//                                "/api/kafka/**"
+//                        )
+//                )
+//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+//
+//        return http.build();
+//    }
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain( HttpSecurity http ) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(authEntryPoint)
                 )
+                // Make it truly STATELESS
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - should come FIRST
@@ -76,26 +156,24 @@ public class SpringSecurity {
                                 "/check/**",
                                 "/api/ollama/**",
                                 "/api/public/med/**",
-                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
+                                "/api/reset/**",
                                 "/api/test/**",
                                 "/api/payment/**",
                                 "/api/kafka/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // ✅ Allow anyone to delete medicines
-//                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/**").permitAll()
-
 
                         // Role-based and authenticated endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders/**").authenticated()
-
-
+                        // Protected endpoints - ADMIN only
+                        // Admin-only endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/medicines/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/medicines/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/medicines/**").hasRole("ADMIN")
 
                         // Any other request - should ALWAYS come LAST
                         .anyRequest().authenticated()
-
-
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
@@ -105,38 +183,25 @@ public class SpringSecurity {
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers(
-                                "/oauth2/**",
-                                "/login/**",
-                                "/api/auth/**",
-                                "/api/public/**",
-                                "/api/health/**",
-                                "/api/orders/**" , // ADD THIS LINE to ignore CSRF for orders API
-                                "/api/payment/**",
-                                "/api/medicines/**", // ✅ Add this line
-                                "/api/reset/**", // ADD THIS - Allow password reset endpoints without authentication
-                                "/api/test/**",
-                                "/api/kafka/**"
-                        )
-                )
+                // ✅ DISABLE CSRF completely for stateless JWT APIs
+                .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder( ) {
-        return new BCryptPasswordEncoder (    );
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     public AuthenticationManager authenticationManager( HttpSecurity httpSecurity ) throws Exception {
-        AuthenticationManagerBuilder authBuilder = httpSecurity.getSharedObject ( AuthenticationManagerBuilder.class );
-        authBuilder.userDetailsService ( userDetailsService ).passwordEncoder ( passwordEncoder ( ) );
-        return authBuilder.build ( );
+        AuthenticationManagerBuilder authBuilder = httpSecurity.getSharedObject(AuthenticationManagerBuilder.class);
+        authBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+        return authBuilder.build();
     }
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -184,7 +249,6 @@ public class SpringSecurity {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 
 
 }

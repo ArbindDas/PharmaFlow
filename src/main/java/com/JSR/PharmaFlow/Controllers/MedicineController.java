@@ -56,14 +56,19 @@ public class MedicineController {
     }
 
 
-    @GetMapping ( "/add" )
-    public String testAdd( ) {
-        return "Endpoint is working";
+    @GetMapping("/add")
+    public ResponseEntity<Map<String, String>> testAdd() {
+        log.info("Test add endpoint called");
+        Map<String, String> response = Map.of(
+                "Message", "Endpoint is working...."
+        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 
 
-
-
+    @PreAuthorize("hasRole('ADMIN')")  // Additional protection
     @PostMapping("/addMedicines")
     public ResponseEntity<?> addMedicine(
             @RequestParam("name") String name,
