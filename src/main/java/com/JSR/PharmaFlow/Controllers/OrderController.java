@@ -1,139 +1,148 @@
 
 
-package com.JSR.PharmaFlow.Controllers;
+    package com.JSR.PharmaFlow.Controllers;
 
-import com.JSR.PharmaFlow.DTO.*;
-import com.JSR.PharmaFlow.Entity.*;
-import com.JSR.PharmaFlow.Enums.Status;
-import com.JSR.PharmaFlow.Repository.MedicinesRepository;
-import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
-import com.JSR.PharmaFlow.Repository.OrdersRepository;
-import com.JSR.PharmaFlow.Repository.UsersRepository;
-import com.JSR.PharmaFlow.Services.kafka.OrderNotificationService;
-import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.*;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+    import com.JSR.PharmaFlow.DTO.*;
+    import com.JSR.PharmaFlow.Entity.*;
+    import com.JSR.PharmaFlow.Enums.Status;
+    import com.JSR.PharmaFlow.Repository.MedicinesRepository;
+    import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
+    import com.JSR.PharmaFlow.Repository.OrdersRepository;
+    import com.JSR.PharmaFlow.Repository.UsersRepository;
+    import com.JSR.PharmaFlow.Services.OrdersService;
+    import com.JSR.PharmaFlow.Services.kafka.OrderNotificationService;
+    import jakarta.transaction.Transactional;
+    import lombok.extern.slf4j.Slf4j;
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.MediaType;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.security.access.prepost.PreAuthorize;
+    import org.springframework.security.authentication.AnonymousAuthenticationToken;
+    import org.springframework.security.core.Authentication;
+    import org.springframework.security.core.annotation.AuthenticationPrincipal;
+    import org.springframework.security.core.context.SecurityContextHolder;
+    import org.springframework.security.core.userdetails.UsernameNotFoundException;
+    import org.springframework.web.bind.annotation.*;
+    import java.math.BigDecimal;
+    import java.time.Instant;
+    import java.util.ArrayList;
+    import java.util.HashMap;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping ( "/api/orders" )
-@CrossOrigin ( origins = "http://localhost:5173", allowedHeaders="*" ,  allowCredentials = "true" )
-@Slf4j
-public class OrderController {
+    @RestController
+    @RequestMapping ( "/api/orders" )
+    @CrossOrigin ( origins = "http://localhost:5173", allowedHeaders="*" ,  allowCredentials = "true" )
+    @Slf4j
+    public class OrderController {
 
-    @Autowired
-    private OrdersRepository ordersRepository;
+        @Autowired
+        private OrdersRepository ordersRepository;
 
-    @Autowired
-    private OrderItemsRepository orderItemsRepository;
+        @Autowired
+        private OrderItemsRepository orderItemsRepository;
 
-    @Autowired
-    private UsersRepository usersRepository;
+        @Autowired
+        private UsersRepository usersRepository;
 
-    @Autowired
-    private MedicinesRepository medicinesRepository;
+        @Autowired
+        private MedicinesRepository medicinesRepository;
 
-
-
-    @Autowired
-    private OrderNotificationService orderNotificationService; // ADD THIS
+        @Autowired
+        private OrdersService ordersService;
 
 
-    // GET endpoint to fetch all orders for admin view
-    @GetMapping(value = "/admin" , produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')") // Add this annotation
-    public ResponseEntity<?> getAllOrders() {
-        try {
-            List<Orders> allOrders = ordersRepository.findAllByOrderByCreatedAtDesc();
 
-            List<AdminOrderResponse> response = allOrders.stream()
-                    .map(order -> {
-                        AdminOrderResponse orderResponse = new AdminOrderResponse();
-                        orderResponse.setId(order.getId());
-                        orderResponse.setTotalPrice(order.getTotalPrice());
-                        orderResponse.setStatus(order.getStatus());
-                        orderResponse.setCreatedAt(Instant.now());
-                        orderResponse.setUserName(order.getUsers().getFullName());
+        @Autowired
+        private OrderNotificationService orderNotificationService; // ADD THIS
 
-                        // Map order items
-                        orderResponse.setItems(order.getOrderItemsList().stream()
-                                .map(item -> OrderItemDTO.builder()
-                                        .medicineId(item.getMedicine().getId())
-                                        .medicineName(item.getMedicine().getName())
-                                        .quantity(item.getQuantity())
-                                        .unitPrice(item.getUnitPrice())
-                                        .build())
-                                .collect(Collectors.toList()));
 
-                        return orderResponse;
-                    })
-                    .collect(Collectors.toList());
 
-            return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to fetch orders", "message", e.getMessage()));
-        }
-    }
-
-    // PUT endpoint to update order status
-    @PutMapping("/{orderId}/status")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable Long orderId, @RequestBody Map<String, String> statusUpdate) {
-        try {
-            String newStatus = statusUpdate.get("status");
-
-            // Validate the status
+        // GET endpoint to fetch all orders for admin view
+        @GetMapping(value = "/admin" , produces = MediaType.APPLICATION_JSON_VALUE)
+        @PreAuthorize("hasRole('ADMIN')") // Add this annotation
+        public ResponseEntity<?> getAllOrders() {
             try {
-                Status status = Status.valueOf(newStatus);
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "Invalid status value"));
+                List<Orders> allOrders = ordersRepository.findAllByOrderByCreatedAtDesc();
+
+                List<AdminOrderResponse> response = allOrders.stream()
+                        .map(order -> {
+                            AdminOrderResponse orderResponse = new AdminOrderResponse();
+                            orderResponse.setId(order.getId());
+                            orderResponse.setTotalPrice(order.getTotalPrice());
+                            orderResponse.setStatus(order.getStatus());
+                            orderResponse.setCreatedAt(Instant.now());
+                            orderResponse.setUserName(order.getUsers().getFullName());
+
+                            // Map order items
+                            orderResponse.setItems(order.getOrderItemsList().stream()
+                                    .map(item -> OrderItemDTO.builder()
+                                            .medicineId(item.getMedicine().getId())
+                                            .medicineName(item.getMedicine().getName())
+                                            .quantity(item.getQuantity())
+                                            .unitPrice(item.getUnitPrice())
+                                            .build())
+                                    .collect(Collectors.toList()));
+
+                            return orderResponse;
+                        })
+                        .collect(Collectors.toList());
+
+                return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Failed to fetch orders", "message", e.getMessage()));
             }
-
-            Orders order = ordersRepository.findById(orderId)
-                    .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
-
-            String oldStatus = order.getStatus().name(); // Store old status
-            order.setStatus(Status.valueOf(newStatus));
-//            ordersRepository.save(order);
-            Orders updatedOrder = ordersRepository.save(order);
-
-            // ✅ SEND STATUS UPDATE NOTIFICATION
-            orderNotificationService.sendStatusUpdate(orderId, order.getUsers().getEmail(), oldStatus, newStatus);
-
-            // ✅ SEND DELIVERY CONFIRMATION IF STATUS IS DELIVERED
-            if ("DELIVERED".equals(newStatus)) {
-                orderNotificationService.sendDeliveryConfirmation(orderId, order.getUsers().getEmail());
-            }
-
-
-            return ResponseEntity.ok(Map.of("message", "Order status updated successfully"));
-
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Order not found", "message", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to update order status", "message", e.getMessage()));
         }
-    }
 
-    @Transactional
+        // PUT endpoint to update order status
+        @PutMapping("/{orderId}/status")
+        public ResponseEntity<?> updateOrderStatus(@PathVariable Long orderId, @RequestBody Map<String, String> statusUpdate) {
+            try {
+                String newStatus = statusUpdate.get("status");
+
+                // Validate the status
+                try {
+                    Status status = Status.valueOf(newStatus);
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(Map.of("error", "Invalid status value"));
+                }
+
+                Orders order = ordersRepository.findById(orderId)
+                        .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+                String oldStatus = order.getStatus().name(); // Store old status
+                order.setStatus(Status.valueOf(newStatus));
+    //            ordersRepository.save(order);
+                Orders updatedOrder = ordersRepository.save(order);
+
+                // ✅ SEND STATUS UPDATE NOTIFICATION
+                orderNotificationService.sendStatusUpdate(orderId, order.getUsers().getEmail(), oldStatus, newStatus);
+
+                // ✅ SEND DELIVERY CONFIRMATION IF STATUS IS DELIVERED
+                if ("DELIVERED".equals(newStatus)) {
+                    orderNotificationService.sendDeliveryConfirmation(orderId, order.getUsers().getEmail());
+                }
+
+
+                return ResponseEntity.ok(Map.of("message", "Order status updated successfully"));
+
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Order not found", "message", e.getMessage()));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Failed to update order status", "message", e.getMessage()));
+            }
+        }
+
+
+            @Transactional
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody OrderRequest orderRequest,
                                          @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -199,8 +208,8 @@ public class OrderController {
 
             orderItemsRepository.saveAll(orderItems);
 
-//            log.info("Order created successfully with ID: {}", savedOrder.getId());
-//            return ResponseEntity.ok(savedOrder);
+                    log.info("Order created successfully with ID: {}", savedOrder.getId());
+//                    return ResponseEntity.ok(savedOrder);
 
             // ✅ SEND ORDER CONFIRMATION NOTIFICATION
             orderNotificationService.sendOrderConfirmation(savedOrder.getId(), user.getEmail());
@@ -215,42 +224,45 @@ public class OrderController {
         }
     }
 
-    @GetMapping("/history")
-    public ResponseEntity<?> getOrderHistory(Authentication auth) {
-        try {
-            String username = auth.getName();
-            Users user = usersRepository.findByEmail(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            List<Orders> userOrders = ordersRepository.findByUsersIdOrderByCreatedAtDesc(user.getId());
 
-            List<OrderResponse> response = userOrders.stream()
-                    .map(order -> {
-                        OrderResponse orderResponse = new OrderResponse();
-                        orderResponse.setOrderId(order.getId());
-                        orderResponse.setTotalPrice(order.getTotalPrice());
-                        orderResponse.setStatus(order.getStatus());
-                        orderResponse.setOrderDate(order.getCreatedAt());
 
-                        // Map order items
-                        orderResponse.setItems(order.getOrderItemsList().stream()
-                                .map(item -> OrderItemDTO.builder()
-                                        .medicineId(item.getMedicine().getId())
-                                        .medicineName(item.getMedicine().getName())
-                                        .quantity(item.getQuantity())
-                                        .unitPrice(item.getUnitPrice())
-                                        .build())
-                                .collect(Collectors.toList()));
+        @GetMapping("/history")
+        public ResponseEntity<?> getOrderHistory(Authentication auth) {
+            try {
+                String username = auth.getName();
+                Users user = usersRepository.findByEmail(username)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-                        return orderResponse;
-                    })
-                    .collect(Collectors.toList());
+                List<Orders> userOrders = ordersRepository.findByUsersIdOrderByCreatedAtDesc(user.getId());
 
-            return ResponseEntity.ok(response);
+                List<OrderResponse> response = userOrders.stream()
+                        .map(order -> {
+                            OrderResponse orderResponse = new OrderResponse();
+                            orderResponse.setOrderId(order.getId());
+                            orderResponse.setTotalPrice(order.getTotalPrice());
+                            orderResponse.setStatus(order.getStatus());
+                            orderResponse.setOrderDate(order.getCreatedAt());
 
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to fetch orders", "message", e.getMessage()));
+                            // Map order items
+                            orderResponse.setItems(order.getOrderItemsList().stream()
+                                    .map(item -> OrderItemDTO.builder()
+                                            .medicineId(item.getMedicine().getId())
+                                            .medicineName(item.getMedicine().getName())
+                                            .quantity(item.getQuantity())
+                                            .unitPrice(item.getUnitPrice())
+                                            .build())
+                                    .collect(Collectors.toList()));
+
+                            return orderResponse;
+                        })
+                        .collect(Collectors.toList());
+
+                return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Failed to fetch orders", "message", e.getMessage()));
+            }
         }
     }
-}

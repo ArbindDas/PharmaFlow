@@ -61,6 +61,9 @@ public class MedicineController {
         return "Endpoint is working";
     }
 
+
+
+
     @PostMapping("/addMedicines")
     public ResponseEntity<?> addMedicine(
             @RequestParam("name") String name,
@@ -71,13 +74,57 @@ public class MedicineController {
             @RequestParam(value = "image", required = false) MultipartFile imageFile,
             @RequestParam("medicineStatus") String medicineStatusStr) {
 
+        log.info("=== START addMedicine API ===");
+        log.info("Request received at: {}", Instant.now());
+
         try {
+            // Log incoming parameters
+            log.info("Incoming parameters:");
+            log.info("- name: {}", name);
+            log.info("- description length: {}", description != null ? description.length() : 0);
+            log.info("- price: {}", price);
+            log.info("- stock: {}", stock);
+            log.info("- expiryDate: {}", expiryDate);
+            log.info("- medicineStatus: {}", medicineStatusStr);
+            log.info("- imageFile: {}", imageFile != null ?
+                    String.format("%s (%d bytes, type: %s)",
+                            imageFile.getOriginalFilename(),
+                            imageFile.getSize(),
+                            imageFile.getContentType()) :
+                    "null");
 
+            // Log authentication info
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            log.info("Authentication: {}", authentication);
+            if (authentication != null) {
+                log.info("- Principal: {}", authentication.getPrincipal());
+                log.info("- Authorities: {}", authentication.getAuthorities());
+                log.info("- Is authenticated: {}", authentication.isAuthenticated());
+                log.info("- Name: {}", authentication.getName());
+            }
 
-
+            // Parse medicine status
+            log.info("Parsing medicine status: {}", medicineStatusStr);
             MedicineStatus status = MedicineStatus.valueOf(medicineStatusStr.toUpperCase());
-            String imageUrl = imageFile != null ? s3Service.uploadFile(imageFile) : null;
+            log.info("Parsed status: {}", status);
 
+            // Handle image upload
+            String imageUrl = null;
+            if (imageFile != null && !imageFile.isEmpty()) {
+                log.info("Uploading image to S3...");
+                try {
+                    imageUrl = s3Service.uploadFile(imageFile);
+                    log.info("Image uploaded successfully. URL: {}", imageUrl);
+                } catch (Exception e) {
+                    log.error("Failed to upload image to S3", e);
+                    throw new RuntimeException("Failed to upload image: " + e.getMessage());
+                }
+            } else {
+                log.info("No image file provided");
+            }
+
+            // Build medicine DTO
+            log.info("Building MedicineDto...");
             MedicineDto medicineDto = MedicineDto.builder()
                     .name(name)
                     .description(description)
@@ -85,19 +132,51 @@ public class MedicineController {
                     .stock(stock)
                     .expiryDate(expiryDate)
                     .imageUrl(imageUrl)
-                    .medicineStatus(status)  // Using the already converted enum
+                    .medicineStatus(status)
                     .createdAt(Instant.now())
                     .build();
 
+            log.info("MedicineDto built: {}", medicineDto);
+
+            // Call service
+            log.info("Calling medicineService.addMedicine()...");
+            long startTime = System.currentTimeMillis();
             MedicineDto savedMedicine = medicineService.addMedicine(medicineDto);
+            long endTime = System.currentTimeMillis();
+            log.info("Service call completed in {} ms", (endTime - startTime));
+
+            log.info("Medicine saved successfully with ID: {}", savedMedicine.getId());
+            log.info("=== END addMedicine API - SUCCESS ===");
+
             return ResponseEntity.status(HttpStatus.CREATED).body(savedMedicine);
+
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid status value: " + medicineStatusStr);
+            log.error("Invalid status value: {}", medicineStatusStr, e);
+            log.error("Valid status values are: {}", Arrays.toString(MedicineStatus.values()));
+            return ResponseEntity.badRequest().body("Invalid status value: " + medicineStatusStr +
+                    ". Valid values: " + Arrays.toString(MedicineStatus.values()));
+
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+            log.error("Error in addMedicine API", e);
+            log.error("Error details - Message: {}, Cause: {}, StackTrace: {}",
+                    e.getMessage(),
+                    e.getCause(),
+                    Arrays.toString(e.getStackTrace()));
+
+            // Log additional context for debugging
+            log.error("Failed request context:");
+            log.error("- name: {}", name);
+            log.error("- price: {}", price);
+            log.error("- stock: {}", stock);
+            log.error("- status attempted: {}", medicineStatusStr);
+
+            return ResponseEntity.internalServerError()
+                    .body("Error: " + e.getMessage() +
+                            ". Please check server logs for details.");
+        } finally {
+            log.info("Request processing completed at: {}", Instant.now());
         }
     }
-
 
     @GetMapping ( "/getMedicines" )
     public ResponseEntity < List < MedicineDto > > getAllMedicines( ) {

@@ -1,11 +1,17 @@
 package com.JSR.PharmaFlow.Services;
 
+import com.JSR.PharmaFlow.DTO.CreateOrderDTO;
 import com.JSR.PharmaFlow.DTO.OrderItemDTO;
-import com.JSR.PharmaFlow.Entity.OrderItems;
-import com.JSR.PharmaFlow.Entity.Orders;
-import com.JSR.PharmaFlow.Entity.Users;
+import com.JSR.PharmaFlow.DTO.OrderItemRequest;
+import com.JSR.PharmaFlow.DTO.OrderRequest;
+import com.JSR.PharmaFlow.Entity.*;
 import com.JSR.PharmaFlow.Enums.Status;
+import com.JSR.PharmaFlow.Repository.MedicinesRepository;
+import com.JSR.PharmaFlow.Repository.OrderItemsRepository;
 import com.JSR.PharmaFlow.Repository.OrdersRepository;
+import com.JSR.PharmaFlow.Repository.UsersRepository;
+import com.JSR.PharmaFlow.Services.kafka.OrderNotificationService;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +22,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class OrdersService {
 
 
@@ -29,6 +37,22 @@ public class OrdersService {
 
     @Autowired
     private OrdersRepository ordersRepository;
+
+
+
+    @Autowired
+    private OrderNotificationService orderNotificationService;
+
+
+
+    @Autowired
+    private OrderItemsRepository orderItemsRepository;
+
+    @Autowired
+    private MedicinesRepository medicinesRepository;
+
+    @Autowired
+    private UsersRepository usersRepository;
 
 
     @Autowired
@@ -139,6 +163,91 @@ public class OrdersService {
         return ordersRepository.save(order);
     }
 
+    @Transactional
+    public Orders createOrder(OrderRequest orderRequest, String username) {
+        log.info("Creating order for user: {}", username);
+
+        // Get authenticated user
+        Users user = usersRepository.findByEmail(username)
+                .orElseThrow(() -> {
+                    log.error("User not found in database: {}", username);
+                    return new RuntimeException("User not found");
+                });
+
+        // Create and save order
+        Orders order = new Orders();
+        order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
+        order.setStatus(Status.PENDING);
+        order.setUsers(user);
+
+        // Set payment information
+        order.setPaymentMethod(orderRequest.getPaymentMethod());
+
+        // Create payment details
+        PaymentDetails paymentDetails = new PaymentDetails();
+        paymentDetails.setAmount(BigDecimal.valueOf(orderRequest.getTotalPrice()));
+        paymentDetails.setPaymentDate(Instant.now());
+        paymentDetails.setPaymentMethod(orderRequest.getPaymentMethod());
+
+        // Set payment status based on method
+        if ("cod".equalsIgnoreCase(orderRequest.getPaymentMethod())) {
+            paymentDetails.setPaymentStatus("pending");
+        } else {
+            paymentDetails.setPaymentStatus("completed");
+        }
+
+        // Set Stripe payment intent ID if provided
+        if (orderRequest.getPaymentIntentId() != null && !orderRequest.getPaymentIntentId().isEmpty()) {
+            paymentDetails.setPaymentIntentId(orderRequest.getPaymentIntentId());
+            paymentDetails.setTransactionId(orderRequest.getPaymentIntentId());
+        }
+
+        order.setPaymentDetails(paymentDetails);
+
+        // Store username for admin panel
+        order.setUserName(user.getFullName());
+
+        Orders savedOrder = ordersRepository.save(order);
+
+        // Create and save order items
+        List<OrderItems> orderItems = new ArrayList<>();
+        for (OrderRequest.OrderItemDto item : orderRequest.getOrderItems()) {
+            Medicines medicine = medicinesRepository.findById(item.getMedicineId())
+                    .orElseThrow(() -> new RuntimeException("Medicine with ID " + item.getMedicineId() + " not found"));
+
+            OrderItems orderItem = new OrderItems();
+            orderItem.setQuantity(Integer.valueOf(item.getQuantity()));
+            orderItem.setUnitPrice(BigDecimal.valueOf(item.getUnitPrice()));
+            orderItem.setOrders(savedOrder);
+            orderItem.setMedicine(medicine);
+
+            orderItems.add(orderItem);
+
+            // Update medicine stock
+            medicine.setStock(medicine.getStock() - Integer.parseInt(item.getQuantity()));
+            medicinesRepository.save(medicine);
+        }
+
+        orderItemsRepository.saveAll(orderItems);
+
+        log.info("Order created successfully with ID: {}", savedOrder.getId());
+
+        // Send Kafka notification
+        try {
+            orderNotificationService.sendOrderConfirmation(savedOrder.getId(), user.getEmail());
+            log.info("Order confirmation notification sent via Kafka for order ID: {}", savedOrder.getId());
+        } catch (Exception e) {
+            log.error("Failed to send Kafka notification for order {}: {}", savedOrder.getId(), e.getMessage());
+            // Don't fail the order creation if Kafka fails
+        }
+
+        return savedOrder;
+    }
+    public List<Orders> getOrdersForAdmin() {
+        return ordersRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+
     private BigDecimal calculateTotal(List< OrderItemDTO > items) {
         return items.stream()
                 .map(i -> i.getUnitPrice().multiply(new BigDecimal(i.getQuantity())))
@@ -153,3 +262,4 @@ public class OrdersService {
     }
 
 }
+

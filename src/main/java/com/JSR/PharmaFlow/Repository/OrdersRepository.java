@@ -32,6 +32,8 @@ import java.util.Optional;
 
 @Repository
 public interface OrdersRepository extends JpaRepository < Orders, Long> {
+
+    List<Orders> findByUsersId(Long userId);
     List <Orders> findByUsers(Users user);
 
     List< Orders> findByUsersIdOrderByCreatedAtDesc(Long userId);

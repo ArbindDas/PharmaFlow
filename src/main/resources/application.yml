@@ -1,121 +1,3 @@
-#
-#
-#spring:
-#  security:
-#    oauth2:
-#      client:
-#        registration:
-#          google:
-#            client-id: ${GOOGLE_CLIENT_ID}
-#            client-secret: ${GOOGLE_CLIENT_SECRET}
-#            scope: email,profile,openid
-#            redirect-uri: http://localhost:8080/login/oauth2/code/google
-#            authorization-grant-type: authorization_code
-#        provider:
-#          google: {}
-#  mail:
-#    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
-#    port: ${SPRING_MAIL_PORT:587}
-#    username: ${GMAIL_USERNAME}
-#    password: ${GMAIL_APP_PASSWORD}
-#    properties:
-#      mail:
-#        smtp:
-#          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
-#          starttls:
-#            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:true}
-#          connectiontimeout: 5000
-#          timeout: 5000
-#          writetimeout: 5000
-#
-#  datasource:
-#    url: ${SPRING_DATASOURCE_URL}
-#    username: ${SPRING_DATASOURCE_USERNAME}
-#    password: ${SPRING_DATASOURCE_PASSWORD}
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#
-#  data:
-#    redis:
-#      host: ${REDIS_HOST}
-#      port: ${REDIS_PORT}
-#      lettuce:
-#        client:
-#          options:
-#            client-name: pharmacy-app
-#            ping-before-activate-connection: true
-#
-#  jpa:
-#    hibernate:
-#      ddl-auto: update
-#    show-sql: true
-#    properties:
-#      hibernate:
-#        dialect: org.hibernate.dialect.MySQL8Dialect
-#        format_sql: true
-#
-#
-#
-## Security configuration
-#security:
-#  oauth2:
-#    resourceserver:
-#      jwt:
-#        issuer-uri: https://accounts.google.com
-#
-#logging:
-#  level:
-#    org:
-#      hibernate:
-#        SQL: DEBUG
-#        type:
-#          descriptor:
-#            sql:
-#              BasicBinder: TRACE
-#      springframework:
-#        web: DEBUG
-#        data:
-#          redis: DEBUG
-#        mail: DEBUG  # Added for email debugging
-#    root: INFO
-#
-#jwt:
-#  secret-key: ${JWT_SECRET}
-#  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
-#  password-reset-expiration: ${JWT_PASSWORD_RESET_EXPIRATION}
-#
-#aws:
-#  accessKeyId: ${AWS_ACCESS_KEY_ID}
-#  secretKey: ${AWS_SECRET_ACCESS_KEY}
-#  region: ${AWS_REGION}
-#  s3:
-#    bucket: ${AWS_S3_BUCKET}
-#
-#ai:
-#  ollama:
-#    base-url: ${SPRING_AI_OLLAMA_BASE_URL}
-#    model: ${SPRING_AI_OLLAMA_MODEL}
-#
-## Stripe configuration
-#stripe:
-#  secret:
-#    key: ${STRIPE_SECRET_KEY}
-#
-## Brevo SMS configuration
-#brevo:
-#  sms:
-#    api:
-#      key: ${BREVO_SMS_API_KEY}
-#
-#
-## Kafka Configuration
-#
-#  kafka:
-#    bootstrap-server: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
-#    producer:
-#      key-serializer: ${SPRING_KAFKA_PRODUCER_KEY_SERIALIZER}
-#      value-serializer: ${SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER}
-#    topics:
-#      user-welcome-email: ${APP_KAFKA_TOPICS_USER_WELCOME_EMAIL}
 
 
 spring:
@@ -133,7 +15,7 @@ spring:
           google: {}
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
-    port: ${SPRING_MAIL_PORT:587}
+    port: ${SPRING_MAIL_PORT:465}
     username: ${GMAIL_USERNAME}
     password: ${GMAIL_APP_PASSWORD}
     properties:
@@ -142,9 +24,9 @@ spring:
           auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
           starttls:
             enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:true}
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+          connectiontimeout: 30000 # 30 seconds for connection
+          timeout: 30000 # 30 seconds for read timeout
+          writetimeout: 30000  # 30 seconds for write timeout
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}

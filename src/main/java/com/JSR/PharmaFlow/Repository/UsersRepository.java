@@ -24,4 +24,6 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
 
     Optional<Users> findByEmailAndAuthProvider(String email, OAuthProvider oAuthProvider);
+
+    Optional<Users> findByUsername(String username);
 }
