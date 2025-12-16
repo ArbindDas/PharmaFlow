@@ -163,6 +163,91 @@ public class OrdersService {
         return ordersRepository.save(order);
     }
 
+//    @Transactional
+//    public Orders createOrder(OrderRequest orderRequest, String username) {
+//        log.info("Creating order for user: {}", username);
+//
+//        // Get authenticated user
+//        Users user = usersRepository.findByEmail(username)
+//                .orElseThrow(() -> {
+//                    log.error("User not found in database: {}", username);
+//                    return new RuntimeException("User not found");
+//                });
+//
+//        // Create and save order
+//        Orders order = new Orders();
+//        order.setTotalPrice(BigDecimal.valueOf(orderRequest.getTotalPrice()));
+//        order.setStatus(Status.PENDING);
+//        order.setUsers(user);
+//
+//        // Set payment information
+//        order.setPaymentMethod(orderRequest.getPaymentMethod());
+//
+//        // Create payment details
+//        PaymentDetails paymentDetails = new PaymentDetails();
+//        paymentDetails.setAmount(BigDecimal.valueOf(orderRequest.getTotalPrice()));
+//        paymentDetails.setPaymentDate(Instant.now());
+//        paymentDetails.setPaymentMethod(orderRequest.getPaymentMethod());
+//
+//        // Set payment status based on method
+//        if ("cod".equalsIgnoreCase(orderRequest.getPaymentMethod())) {
+//            paymentDetails.setPaymentStatus("pending");
+//        } else {
+//            paymentDetails.setPaymentStatus("completed");
+//        }
+//
+//        // Set Stripe payment intent ID if provided
+//        if (orderRequest.getPaymentIntentId() != null && !orderRequest.getPaymentIntentId().isEmpty()) {
+//            paymentDetails.setPaymentIntentId(orderRequest.getPaymentIntentId());
+//            paymentDetails.setTransactionId(orderRequest.getPaymentIntentId());
+//        }
+//
+//        order.setPaymentDetails(paymentDetails);
+//
+//        // Store username for admin panel
+//        order.setUserName(user.getFullName());
+//
+//        Orders savedOrder = ordersRepository.save(order);
+//
+//        // Create and save order items
+//        List<OrderItems> orderItems = new ArrayList<>();
+//        for (OrderRequest.OrderItemDto item : orderRequest.getOrderItems()) {
+//            Medicines medicine = medicinesRepository.findById(item.getMedicineId())
+//                    .orElseThrow(() -> new RuntimeException("Medicine with ID " + item.getMedicineId() + " not found"));
+//
+//            OrderItems orderItem = new OrderItems();
+//            orderItem.setQuantity(Integer.valueOf(item.getQuantity()));
+//            orderItem.setUnitPrice(BigDecimal.valueOf(item.getUnitPrice()));
+//            orderItem.setOrders(savedOrder);
+//            orderItem.setMedicine(medicine);
+//
+//            orderItems.add(orderItem);
+//
+//            // Update medicine stock
+//            medicine.setStock(medicine.getStock() - Integer.parseInt(item.getQuantity()));
+//            medicinesRepository.save(medicine);
+//        }
+//
+//        orderItemsRepository.saveAll(orderItems);
+//
+//        log.info("Order created successfully with ID: {}", savedOrder.getId());
+//
+//        // Send Kafka notification
+//        try {
+//            orderNotificationService.sendOrderConfirmation(savedOrder.getId(), user.getEmail());
+//            log.info("Order confirmation notification sent via Kafka for order ID: {}", savedOrder.getId());
+//        } catch (Exception e) {
+//            log.error("Failed to send Kafka notification for order {}: {}", savedOrder.getId(), e.getMessage());
+//            // Don't fail the order creation if Kafka fails
+//        }
+//
+//        return savedOrder;
+//    }
+//    public List<Orders> getOrdersForAdmin() {
+//        return ordersRepository.findAllByOrderByCreatedAtDesc();
+//    }
+
+
     @Transactional
     public Orders createOrder(OrderRequest orderRequest, String username) {
         log.info("Creating order for user: {}", username);
@@ -180,14 +265,14 @@ public class OrdersService {
         order.setStatus(Status.PENDING);
         order.setUsers(user);
 
-        // Set payment information
+        // ⭐ Set payment method on the Order entity (NOT in PaymentDetails)
         order.setPaymentMethod(orderRequest.getPaymentMethod());
 
-        // Create payment details
+        // Create payment details WITHOUT paymentMethod
         PaymentDetails paymentDetails = new PaymentDetails();
         paymentDetails.setAmount(BigDecimal.valueOf(orderRequest.getTotalPrice()));
         paymentDetails.setPaymentDate(Instant.now());
-        paymentDetails.setPaymentMethod(orderRequest.getPaymentMethod());
+        // ❌ DON'T set payment method here - paymentDetails.setPaymentMethod(orderRequest.getPaymentMethod());
 
         // Set payment status based on method
         if ("cod".equalsIgnoreCase(orderRequest.getPaymentMethod())) {
@@ -242,9 +327,6 @@ public class OrdersService {
         }
 
         return savedOrder;
-    }
-    public List<Orders> getOrdersForAdmin() {
-        return ordersRepository.findAllByOrderByCreatedAtDesc();
     }
 
 

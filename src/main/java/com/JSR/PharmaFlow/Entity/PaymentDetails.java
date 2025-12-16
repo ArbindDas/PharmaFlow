@@ -16,7 +16,6 @@ import java.time.Instant;
 @Getter
 @Setter
 public class PaymentDetails {
-    private String paymentMethod; // "cod", "credit_card", "debit_card", etc.
     private String paymentStatus; // "pending", "completed", "failed", "refunded"
     private BigDecimal amount;
     private Instant paymentDate;

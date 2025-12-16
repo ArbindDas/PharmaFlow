@@ -116,13 +116,19 @@
 
 package com.JSR.PharmaFlow.Controllers;
 
+import com.JSR.PharmaFlow.Entity.Users;
+import com.JSR.PharmaFlow.Repository.UsersRepository;
 import com.JSR.PharmaFlow.Utils.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -131,6 +137,40 @@ public class Test {
 
     private final JwtUtil jwtUtil;
 
+
+
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UsersRepository usersRepository;
+
+    @GetMapping("/check-password")
+    public ResponseEntity<?> checkPassword(@RequestParam String email,
+                                           @RequestParam String password) {
+        try {
+            Optional<Users> userOpt = usersRepository.findByEmail(email);
+            if (userOpt.isPresent()) {
+                Users user = userOpt.get();
+                boolean matches = passwordEncoder.matches(password, user.getPassword());
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("email", email);
+                response.put("storedPassword", user.getPassword());
+                response.put("inputPassword", password);
+                response.put("matches", matches);
+                response.put("passwordEncoder", passwordEncoder.getClass().getSimpleName());
+
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("User not found");
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
 
 
     public Test(JwtUtil jwtUtil) {
