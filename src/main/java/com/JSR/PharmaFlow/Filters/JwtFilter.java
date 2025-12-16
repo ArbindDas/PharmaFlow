@@ -102,9 +102,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 path.startsWith("/api/reset/") ||
                 path.startsWith("/api/test/") ||
                 path.startsWith("/api/public/") ||
-                path.startsWith("/api/medicines/getMedicines") ||
+                path.startsWith("/api/medicines/getMedicines") || // public GET
                 path.startsWith("/api/medicines/test") ||
-                path.startsWith("/api/medicines/add") ||
                 path.startsWith("/oauth2/") ||
                 path.startsWith("/login/oauth2/") ||
                 path.startsWith("/api/health/") ||
@@ -113,6 +112,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 path.startsWith("/api/public/med/") ||
                 path.startsWith("/api/payment/");
     }
+
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
