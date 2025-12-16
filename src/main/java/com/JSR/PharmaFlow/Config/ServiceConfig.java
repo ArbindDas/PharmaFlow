@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ServiceConfig {
 
+    // project completed
+
     @Bean
     public MedicineService medicineService(MedicinesRepository medicinesRepository,
                                            ModelMapper modelMapper,
